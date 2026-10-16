@@ -13,6 +13,7 @@ const SCREENS: { group: string; items: { label: string; href: string; states?: s
     items: [
       { label: "Landing", href: "/" },
       { label: "Log in", href: "/login", states: ["loading", "error"] },
+      { label: "Student tablet sign-in", href: "/login/student" },
       { label: "Sign up", href: "/signup", states: ["loading", "error"] },
       { label: "Join", href: "/join", states: ["loading", "error"] },
       { label: "Privacy", href: "/privacy" },

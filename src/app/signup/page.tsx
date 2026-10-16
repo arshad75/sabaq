@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PublicShell } from "@/components/shell/AppShell";
-import { AuthForm } from "@/components/auth/AuthForm";
+import { SignupForm } from "@/components/auth/SignupForm";
 import { Card } from "@/components/ui/Card";
 import { ErrorState, LoadingBlock } from "@/components/ui/States";
 import { getPreviewState } from "@/lib/preview";
@@ -28,7 +28,7 @@ async function Content({ searchParams }: Pick<PageProps<"/signup">, "searchParam
   if (state === "error") return <ErrorState description="Sign-up is unavailable right now. Please try again in a minute." />;
   return (
     <Card>
-      <AuthForm mode="signup" />
+      <SignupForm />
     </Card>
   );
 }

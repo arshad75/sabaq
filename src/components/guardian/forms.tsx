@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, SegmentedControl, Switch, TextInput } from "@/components/ui/Form";
 import { Badge } from "@/components/ui/Card";
 import { Banner } from "@/components/ui/States";
 import type { LoginMethod } from "@/lib/domain/types";
-import { uid } from "@/lib/uid";
+import { makeStudentLink, resetPin, setUpTablet } from "@/lib/auth/actions";
 
 export function AddChildForm() {
   const [open, setOpen] = useState(false);
@@ -193,9 +193,22 @@ export function RecordingConsent({ initial }: { initial: boolean }) {
   );
 }
 
-export function LoginSetup({ method, nickname }: { method: LoginMethod; nickname: string }) {
+export function LoginSetup({
+  studentId,
+  method,
+  nickname,
+}: {
+  studentId: string;
+  method: LoginMethod;
+  nickname: string;
+}) {
   const [pin, setPin] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const errorBanner = error && <Banner tone="danger">{error}</Banner>;
+
   if (method === "pin") {
     return (
       <div className="space-y-3">
@@ -208,13 +221,18 @@ export function LoginSetup({ method, nickname }: { method: LoginMethod; nickname
             shown again.
           </Banner>
         )}
+        {errorBanner}
         <Button
           variant="secondary"
           icon="key"
-          onClick={() => {
-            const n = crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
-            setPin(String(n).padStart(4, "0"));
-          }}
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const r = await resetPin(studentId);
+              setError(r.ok ? null : r.message);
+              setPin(r.ok ? r.value : null);
+            })
+          }
         >
           {pin ? "Make another PIN" : "Reset PIN"}
         </Button>
@@ -225,8 +243,47 @@ export function LoginSetup({ method, nickname }: { method: LoginMethod; nickname
     <div className="space-y-3">
       <p className="text-muted">Open a one-time link on {nickname}’s tablet to sign them in. Links expire after 15 minutes.</p>
       {link && <p className="rounded-xl bg-surface-2 p-3 font-mono text-sm break-all">{link}</p>}
-      <Button variant="secondary" icon="link" onClick={() => setLink(`${window.location.origin}/login/student/${uid()}`)}>
+      {errorBanner}
+      <Button
+        variant="secondary"
+        icon="link"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const r = await makeStudentLink(studentId);
+            setError(r.ok ? null : r.message);
+            setLink(r.ok ? `${window.location.origin}${r.value.path}` : null);
+          })
+        }
+      >
         {link ? "Make a new link" : "Create sign-in link"}
+      </Button>
+    </div>
+  );
+}
+
+export function TabletSetup() {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  return (
+    <div className="space-y-3">
+      <p className="text-muted">
+        Do this once on the tablet your child reads on. Afterwards the tablet shows a simple “Who is reading?” screen
+        with a PIN pad.
+      </p>
+      {error && <Banner tone="danger">{error}</Banner>}
+      <Button
+        variant="secondary"
+        icon="lock"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const r = await setUpTablet();
+            if (!r.ok) setError(r.message);
+          })
+        }
+      >
+        Set up this tablet
       </Button>
     </div>
   );

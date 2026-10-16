@@ -9,6 +9,8 @@ tablet first (the student reads on it), then phone, then desktop.
 |---|---|---|
 | `/` | public | M0 |
 | `/login`, `/signup` | public | M3 |
+| `/login/student` | paired tablet | M3 |
+| `/login/student/[token]` | public (one-time link) | M3 |
 | `/join` | any | M2 |
 | `/session/[code]` | teacher, student | M2 |
 | `/guardian` | guardian | M3 |
@@ -32,6 +34,17 @@ No tracking scripts.
 ### `/login`, `/signup`
 Guardian and teacher sign-up with role choice. Students never sign up here; they
 are created by a guardian. Empty, loading, and error states for each form.
+Login never asks for a role: it comes from the account. Wrong details get one
+generic message, and the email-link reply is the same whether or not the account exists.
+
+### `/login/student` Tablet sign-in
+Only works on a tablet a guardian has set up ("Set up this tablet" on the child
+profile); otherwise it shows how to set one up and lists no names. "Who is reading?"
+big name buttons, then a 4-digit PIN pad. 5 wrong PINs lock that child for a minute.
+
+### `/login/student/[token]` One-time link
+A guardian-made link that signs the child in when "Start" is pressed (opening the link
+alone does not use it, so chat-app previews can't). Expires after 15 minutes or one use.
 
 ### `/join`
 Enter a 6-character room code to join a live session. Used before accounts exist

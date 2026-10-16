@@ -7,7 +7,8 @@ import { ReadingView } from "@/components/reading/ReadingView";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, SegmentedControl, Select, Switch } from "@/components/ui/Form";
 import { MarkLegend } from "@/components/ui/Indicators";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
+import { logOut } from "@/lib/auth/actions";
 import { Skeleton } from "@/components/ui/States";
 
 function ReadingPreview({ theme }: { theme: ReadingTheme }) {
@@ -103,9 +104,11 @@ export function SettingsForm() {
 
       <Card>
         <CardHeader title="Account" />
-        <ButtonLink href="/" variant="secondary" icon="logout">
-          Sign out
-        </ButtonLink>
+        <form action={logOut}>
+          <Button type="submit" variant="secondary" icon="logout">
+            Sign out
+          </Button>
+        </form>
       </Card>
     </div>
   );

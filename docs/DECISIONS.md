@@ -2,6 +2,27 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Prototype sign-in for teachers, guardians and students
+
+- **Mock auth, real shape.** Until Supabase Auth (M3), `src/lib/mock/auth.ts` and
+  `src/lib/auth/` run sign-in on the server with an httpOnly session cookie. Stores are
+  in memory and reset when the dev server restarts. Demo logins: `amina@example.com`
+  (teacher) and `sara@example.com` (guardian), password `lesson-sync-demo`; every child's
+  PIN starts as `1234`.
+- **Role comes from the account.** The old login form had no role field and always
+  sent people to the guardian dashboard. Login now looks the role up server-side.
+- **No account discovery.** Wrong email or password gives one message; the email-link
+  reply is identical for unknown emails.
+- **Tablet pairing.** `/login/student` lists children only on a browser a guardian has
+  set up, so a public page never shows children's names.
+- **PINs.** Stored hashed; 5 wrong tries lock that child for 60 s. A 4-digit PIN is
+  weak offline, so the real `pin_hash` must use a slow KDF and server-side rate limits.
+- **One-time links.** Spent only when the child presses "Start", so link previews in
+  WhatsApp and similar apps can't use them up. 15-minute expiry.
+- **Not yet enforced:** role layouts still render without a session so the prototype
+  screens stay browsable. Guardian-only actions (PIN reset, sign-in link, tablet setup)
+  do require a guardian session. Route protection arrives with RLS in M3.
+
 ## 2026-10-16: Qaida lessons use the licensed Noorani Qaida page images
 
 - **Source.** Qamar Apps' Noorani Qaida (Indian edition), CC BY-SA 4.0 (see

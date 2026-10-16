@@ -13,6 +13,7 @@ import {
   LoginSetup,
   RecordingConsent,
   RevokeButton,
+  TabletSetup,
 } from "@/components/guardian/forms";
 import { getPreviewState } from "@/lib/preview";
 import { formatDate } from "@/lib/format";
@@ -67,7 +68,12 @@ async function ChildScreen({ params, searchParams }: PageProps<"/guardian/childr
 
           <Card>
             <CardHeader title="Tablet sign-in" />
-            <LoginSetup method={child.loginMethod} nickname={child.nickname} />
+            <LoginSetup studentId={child.id} method={child.loginMethod} nickname={child.nickname} />
+          </Card>
+
+          <Card>
+            <CardHeader title="Family tablet" />
+            <TabletSetup />
           </Card>
 
           <Card>

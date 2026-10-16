@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/ui/States";
 import { Icon } from "@/components/ui/Icon";
 import { getActingStudent, getPreviewState } from "@/lib/preview";
+import { getSignedInStudentId } from "@/lib/auth/session";
 import { ASSIGNMENT_KIND_LABEL, pageRange, relativeDays } from "@/lib/format";
 import { CURRENT, getStudent, listAssignmentsForStudent, liveSessionForTeacher, studentStreak } from "@/lib/mock/repo";
 import { MOCK_NOW, MOCK_TODAY } from "@/lib/mock/data";
@@ -26,7 +27,7 @@ async function Home({ searchParams }: Pick<PageProps<"/student">, "searchParams"
   if (state === "loading") return <LoadingBlock label="Loading" rows={2} />;
   if (state === "error") return <ErrorState title="Oops" description="We couldn’t load your reading. Ask a grown-up to check the internet." />;
 
-  const { id: studentId, qs } = await getActingStudent(searchParams, CURRENT.studentId);
+  const { id: studentId, qs } = await getActingStudent(searchParams, await getSignedInStudentId(CURRENT.studentId));
   const me = getStudent(studentId)!;
   const todo = state === "empty" ? [] : listAssignmentsForStudent(me.id).filter((a) => a.status !== "completed");
   const today = todo.filter((a) => a.dueOn <= MOCK_TODAY).sort((a, b) => a.dueOn.localeCompare(b.dueOn));

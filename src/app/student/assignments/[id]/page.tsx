@@ -8,6 +8,7 @@ import { ErrorState, LoadingBlock } from "@/components/ui/States";
 import { Icon } from "@/components/ui/Icon";
 import { PracticeReader } from "@/components/reading/PracticeReader";
 import { getActingStudent, getPreviewState } from "@/lib/preview";
+import { getSignedInStudentId } from "@/lib/auth/session";
 import { ASSIGNMENT_KIND_LABEL, ASSIGNMENT_STATUS, formatDate, pageRange, relativeDays } from "@/lib/format";
 import { CURRENT, getAssignmentForStudent, liveSessionForTeacher } from "@/lib/mock/repo";
 import { MOCK_NOW } from "@/lib/mock/data";
@@ -26,7 +27,7 @@ async function AssignmentScreen({ params, searchParams }: PageProps<"/student/as
   const [{ id }, state, acting] = await Promise.all([
     params,
     getPreviewState(searchParams),
-    getActingStudent(searchParams, CURRENT.studentId),
+    getActingStudent(searchParams, await getSignedInStudentId(CURRENT.studentId)),
   ]);
   if (state === "loading") return <LoadingBlock label="Loading" rows={2} />;
   if (state === "error") return <ErrorState title="Oops" description="We couldn’t open this reading. Try again soon." />;
