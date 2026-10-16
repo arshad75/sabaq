@@ -70,12 +70,12 @@ export function ImagePageView({
   className?: string;
 }) {
   const cells = qaidaCells(page);
-  const [spoken, setSpoken] = useState<{ cell: QaidaCell; letter: LetterName; silent: boolean } | null>(null);
+  const [spoken, setSpoken] = useState<{ page: number; cell: QaidaCell; letter: LetterName; silent: boolean } | null>(null);
   useEffect(() => (speakLetters ? warmUpLetterVoice() : undefined), [speakLetters]);
   const sayLetter = (c: QaidaCell) => {
     const letter = speakLetters ? letterFor(page, c) : undefined;
     if (!letter) return setSpoken(null);
-    setSpoken({ cell: c, letter, silent: !speakLetter(letter) });
+    setSpoken({ page, cell: c, letter, silent: !speakLetter(letter) });
   };
   const handleTap = (e: MouseEvent<HTMLDivElement>) => {
     // With detected word boxes, only the boxes are tappable; free taps are for pages without them.
@@ -226,7 +226,7 @@ export function ImagePageView({
             </span>
           );
         })}
-        {spoken && (
+        {spoken && spoken.page === page && (
           <button
             key={spoken.cell.id}
             type="button"

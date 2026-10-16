@@ -38,6 +38,7 @@ export function ReadingView({
   return (
     <article
       data-reading-theme={readingTheme}
+      data-no-say
       aria-label={`Page ${page.page}`}
       className={cn("@container rounded-2xl bg-reading-bg text-reading-fg shadow-sm ring-1 ring-border", className)}
     >

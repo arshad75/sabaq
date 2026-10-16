@@ -44,17 +44,19 @@ function renderPage() {
       <figure data-no-say>
         <button type="button">Line 2, word 1</button>
       </figure>
+      <button type="button">Surah 1, ayah 2, word 3, current position</button>
     </div>,
   );
 }
 
 describe("VoiceGuide", () => {
-  it("reads buttons and links aloud, but leaves Qaida letters to their own sound", () => {
+  it("reads buttons and links aloud, but leaves Qaida letters and long labels alone", () => {
     const { getByText, getByLabelText } = renderPage();
     getByText("Next page").click();
     getByLabelText("Join a lesson").addEventListener("click", (e) => e.preventDefault());
     getByLabelText("Join a lesson").click();
     getByText("Line 2, word 1").click();
+    getByText(/Surah 1, ayah 2/).click();
     expect(spoken).toEqual(["Next page", "Join a lesson"]);
   });
 

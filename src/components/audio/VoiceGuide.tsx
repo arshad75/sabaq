@@ -15,7 +15,9 @@ export function VoiceGuide() {
     const onTap = (e: MouseEvent) => {
       const el = (e.target as Element | null)?.closest("button, a[href], [role='button']");
       if (!el || el.closest("[data-no-say]")) return;
-      sayLabel(labelOf(el));
+      const label = labelOf(el);
+      // Short, friendly labels only; anything longer reads like a screen reader to a child.
+      if (label.split(" ").length <= 4) sayLabel(label);
     };
     document.addEventListener("click", onTap, { capture: true });
     return () => document.removeEventListener("click", onTap, { capture: true });
