@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
+import { QAIDA } from "@/lib/books";
 import { Icon } from "@/components/ui/Icon";
 import { BottomNav, TopNav, type NavItem } from "./Nav";
 
@@ -117,6 +118,20 @@ export function PublicShell({ children }: { children: ReactNode }) {
           )}
         </nav>
         <p className="mt-2">Open source under Apache-2.0.</p>
+        <p className="mt-1 text-xs">
+          Qaida pages ©{" "}
+          <a href={QAIDA.attribution.url} className="underline-offset-4 hover:underline" rel="noopener noreferrer">
+            {QAIDA.attribution.author}
+          </a>
+          ,{" "}
+          <a
+            href={QAIDA.attribution.licenceUrl}
+            className="underline-offset-4 hover:underline"
+            rel="noopener noreferrer license"
+          >
+            {QAIDA.attribution.licence}
+          </a>
+        </p>
       </footer>
     </div>
   );

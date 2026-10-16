@@ -3,7 +3,7 @@ import { PublicShell } from "@/components/shell/AppShell";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { MarkLegend } from "@/components/ui/Indicators";
-import { ImagePageView, QaidaCredit } from "@/components/reading/ImagePageView";
+import { ImagePageView } from "@/components/reading/ImagePageView";
 import { cellCenter, qaidaCells } from "@/lib/qaida/layout";
 
 const DEMO_PAGE = 1;
@@ -165,7 +165,6 @@ export default function Home() {
           </div>
           <div>
             <LivePreview />
-            <QaidaCredit className="mt-4 text-center lg:text-left" />
           </div>
         </div>
       </section>
