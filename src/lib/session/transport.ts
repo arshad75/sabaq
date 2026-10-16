@@ -14,19 +14,34 @@ export function createLocalTransport(roomCode: string, opts: { latencyMs?: numbe
   const channel = new BroadcastChannel(`lesson-sync:room:${roomCode}`);
   const handlers = new Set<(e: SessionEvent) => void>();
   const latency = Math.max(0, opts.latencyMs ?? 0);
+  const pending = new Map<ReturnType<typeof setTimeout>, SessionEvent>();
+  let closed = false;
 
   channel.onmessage = (msg: MessageEvent<SessionEvent>) => handlers.forEach((h) => h(msg.data));
 
   return {
     send(event) {
-      if (latency) setTimeout(() => channel.postMessage(event), latency);
-      else channel.postMessage(event);
+      if (closed) return;
+      if (!latency) return channel.postMessage(event);
+      const timer = setTimeout(() => {
+        pending.delete(timer);
+        channel.postMessage(event);
+      }, latency);
+      pending.set(timer, event);
     },
     subscribe(handler) {
       handlers.add(handler);
       return () => handlers.delete(handler);
     },
     close() {
+      if (closed) return;
+      // Flush delayed sends so the last "left" presence still reaches the peer.
+      for (const [timer, event] of pending) {
+        clearTimeout(timer);
+        channel.postMessage(event);
+      }
+      pending.clear();
+      closed = true;
       handlers.clear();
       channel.close();
     },

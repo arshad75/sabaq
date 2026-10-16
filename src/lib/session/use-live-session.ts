@@ -85,7 +85,17 @@ export function useLiveSession({
   useEffect(() => {
     const t = createLocalTransport(code, { latencyMs });
     transportRef.current = t;
-    const seen = (left = false) => setPeer({ lastSeen: Date.now(), left });
+    let lastHeard: number | null = null;
+    let peerLeft = false;
+    const requestSync = () => t.send({ type: "sync_request", from: role, clientId, state: sharedRef.current });
+    const seen = (left = false) => {
+      const at = Date.now();
+      // Back after a gap: anything either side did meanwhile was lost, so swap state again.
+      if (!left && lastHeard !== null && (peerLeft || at - lastHeard > STALE_MS)) requestSync();
+      lastHeard = at;
+      peerLeft = left;
+      setPeer({ lastSeen: at, left });
+    };
 
     const unsubscribe = t.subscribe((e) => {
       if (e.from === role) return;
@@ -112,7 +122,7 @@ export function useLiveSession({
 
     const hello = () => {
       t.send({ type: "presence", from: role, clientId, connected: true });
-      t.send({ type: "sync_request", from: role, clientId, state: sharedRef.current });
+      requestSync();
     };
     hello();
     const heartbeat = setInterval(() => {

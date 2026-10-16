@@ -85,6 +85,39 @@ test("qaida: student points at a spot and teacher marks it on the page image", a
   await context.close();
 });
 
+test("after a dropped connection the teacher catches up with what the student did offline", async ({ browser }) => {
+  const code = generateRoomCode();
+  const context = await browser.newContext();
+  const errors: string[] = [];
+  const teacher = await context.newPage();
+  const student = await context.newPage();
+  for (const p of [teacher, student]) p.on("pageerror", (e) => errors.push(e.message));
+  await teacher.goto(`/session/${code}?role=teacher&book=qaida&latency=300`);
+  await student.goto(`/session/${code}?role=student&latency=300`);
+  await expect(teacher.getByRole("status", { name: "Student: Connected" })).toBeVisible({ timeout: 8000 });
+
+  // The student's outgoing messages are lost, as on a dropped mobile connection.
+  await student.evaluate(() => {
+    const w = window as unknown as { realPost: typeof BroadcastChannel.prototype.postMessage };
+    w.realPost = BroadcastChannel.prototype.postMessage;
+    BroadcastChannel.prototype.postMessage = () => {};
+  });
+  await expect(teacher.getByText(/connection dropped/)).toBeVisible({ timeout: 12_000 });
+  await student.getByRole("button", { name: "Next page" }).click();
+  await expect(student.getByRole("img", { name: "Noorani Qaida page 2" })).toBeVisible();
+
+  await student.evaluate(() => {
+    BroadcastChannel.prototype.postMessage = (window as unknown as { realPost: typeof BroadcastChannel.prototype.postMessage }).realPost;
+  });
+  await expect(teacher.getByRole("status", { name: "Student: Connected" })).toBeVisible({ timeout: 8000 });
+  await expect(teacher.getByRole("img", { name: "Noorani Qaida page 2" })).toBeVisible({ timeout: 3000 });
+
+  await student.close();
+  await teacher.waitForTimeout(500);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
 test("join form rejects a malformed code", async ({ page }) => {
   await page.goto("/join");
   await page.getByLabel("Room code").fill("AB1");
