@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
 const PORT = Number(process.env.E2E_PORT ?? 3100);
+// Set E2E_BASE_URL to test a deployed site instead of starting a local server.
+const BASE_URL = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -8,7 +10,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: BASE_URL ?? `http://localhost:${PORT}`,
     trace: "retain-on-failure",
   },
   projects: [
@@ -16,10 +18,12 @@ export default defineConfig({
     { name: "tablet-landscape", use: { browserName: "chromium", viewport: { width: 1024, height: 768 }, hasTouch: true } },
     { name: "phone", use: { browserName: "chromium", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
   ],
-  webServer: {
-    command: `pnpm dev --port ${PORT}`,
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: BASE_URL
+    ? undefined
+    : {
+        command: `pnpm dev --port ${PORT}`,
+        url: `http://localhost:${PORT}`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
 });
