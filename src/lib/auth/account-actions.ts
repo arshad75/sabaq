@@ -114,6 +114,12 @@ export async function adminUpdateRequest(form: FormData) {
   refresh();
 }
 
+export async function adminOnboard(form: FormData) {
+  const supabase = await createSupabaseServer();
+  await supabase.rpc("admin_onboard_request", { p_request: String(form.get("id")) });
+  refresh();
+}
+
 export async function adminSetRole(form: FormData) {
   const role = form.get("role") === "teacher" ? "teacher" : "guardian";
   const supabase = await createSupabaseServer();

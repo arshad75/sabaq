@@ -158,12 +158,19 @@ export function LessonRequestForm() {
   );
 }
 
-export function StartLiveLesson() {
-  const [book, setBook] = useState<Book>("qaida");
+export function StartLiveLesson({ student }: { student?: { id: string; nickname: string; book: Book } }) {
+  const [book, setBook] = useState<Book>(student?.book ?? "qaida");
   const [code, setCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   if (!code) {
+    if (student) {
+      return (
+        <Button icon="play" onClick={() => setCode(generateRoomCode())}>
+          Start lesson
+        </Button>
+      );
+    }
     return (
       <div className="space-y-4">
         <SegmentedControl<Book>
@@ -182,9 +189,9 @@ export function StartLiveLesson() {
 
   const studentLink = `${window.location.origin}/session/${code}?role=student&book=${book}`;
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       <div>
-        <p className="text-sm text-muted">Lesson code</p>
+        <p className="text-sm text-muted">{student ? `Lesson code for ${student.nickname}` : "Lesson code"}</p>
         <p className="font-mono text-4xl font-semibold tracking-[0.3em]" aria-live="polite">
           {code}
         </p>
@@ -205,7 +212,10 @@ export function StartLiveLesson() {
         >
           {copied ? "Link copied" : "Copy link for the child"}
         </Button>
-        <ButtonLink href={`/session/${code}?role=teacher&book=${book}`} icon="play">
+        <ButtonLink
+          href={`/session/${code}?role=teacher&book=${book}${student ? `&student=${student.id}` : ""}`}
+          icon="play"
+        >
           Open live view
         </ButtonLink>
       </div>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge, Card, CardHeader } from "@/components/ui/Card";
 import { Select, TextInput } from "@/components/ui/Form";
 import { EmptyState, LoadingBlock } from "@/components/ui/States";
-import { adminSetRole, adminUpdateRequest } from "@/lib/auth/account-actions";
+import { adminOnboard, adminSetRole, adminUpdateRequest } from "@/lib/auth/account-actions";
 import { BOOK_LABEL } from "@/lib/books";
 import type { Book } from "@/lib/domain/types";
 import { createSupabaseServer, getAccount } from "@/lib/supabase/server";
@@ -26,6 +26,7 @@ type Request = {
   status: "requested" | "scheduled" | "done" | "cancelled";
   schedule_note: string | null;
   teacher_id: string | null;
+  student_id: string | null;
 };
 
 type Person = {
@@ -132,6 +133,25 @@ async function Content() {
                   </label>
                   <Button type="submit">Save</Button>
                 </form>
+                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+                  {r.student_id ? (
+                    <Badge tone="success" icon="check">
+                      Onboarded: linked to the teacher
+                    </Badge>
+                  ) : (
+                    <form action={adminOnboard} className="flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="id" value={r.id} />
+                      <Button type="submit" variant="secondary" icon="users" disabled={!r.teacher_id}>
+                        Onboard
+                      </Button>
+                      <span className="text-sm text-muted">
+                        {r.teacher_id
+                          ? `Adds ${r.child_nickname} to the teacher’s class so lessons are saved.`
+                          : "Assign and save a teacher first."}
+                      </span>
+                    </form>
+                  )}
+                </div>
               </Card>
             ))}
           </div>

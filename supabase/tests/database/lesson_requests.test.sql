@@ -47,7 +47,7 @@ select lives_ok($$select public.admin_set_role('a1000000-0000-4000-8000-00000000
                 'the admin can make someone a teacher');
 select lives_ok(
   $$select public.admin_update_request(
-      (select id from public.lesson_requests limit 1), 'scheduled', 'Sat 5pm Sydney',
+      (select id from public.lesson_requests where guardian_id = 'a1000000-0000-4000-8000-000000000001'), 'scheduled', 'Sat 5pm Sydney',
       'a1000000-0000-4000-8000-000000000004')$$,
   'the admin schedules a request with a teacher');
 reset role;

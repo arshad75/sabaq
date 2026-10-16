@@ -127,6 +127,8 @@ test("after a dropped connection the teacher catches up with what the student di
 });
 
 test("full qaida lesson: numbered marks, select from list, end, save and open its real summary", async ({ browser }) => {
+  // Uses the demo dashboard; accounts.spec.ts covers saving with real accounts.
+  test.skip(process.env.NEXT_PUBLIC_SUPABASE_AUTH === "1", "prototype logins only");
   const teacherCtx = await browser.newContext();
   const teacher = await teacherCtx.newPage();
   await teacher.goto("/login");
@@ -180,7 +182,7 @@ test("full qaida lesson: numbered marks, select from list, end, save and open it
 
 test("an unlinked room explains why it can't be saved", async ({ page }) => {
   await page.goto(`/session/${generateRoomCode()}?role=teacher&state=ended`);
-  await expect(page.getByText(/isn’t linked to a student/)).toBeVisible();
+  await expect(page.getByText(/wasn’t started for a particular student/)).toBeVisible();
 });
 
 test("join form rejects a malformed code", async ({ page }) => {

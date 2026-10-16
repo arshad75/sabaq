@@ -76,7 +76,8 @@ async function SessionRoute({ params, searchParams }: PageProps<"/session/[code]
     state === "waiting" || state === "reconnecting" || state === "ended" ? state : null;
 
   const studentParam = one(sp.student);
-  const studentId = role === "teacher" && studentParam && /^s\d+$/.test(studentParam) ? studentParam : null;
+  const studentId =
+    role === "teacher" && studentParam && /^(s\d+|[0-9a-f-]{36})$/i.test(studentParam) ? studentParam : null;
 
   return (
     <SessionClient

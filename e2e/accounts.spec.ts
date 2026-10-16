@@ -5,6 +5,7 @@ test.skip(process.env.NEXT_PUBLIC_SUPABASE_AUTH !== "1", "needs NEXT_PUBLIC_SUPA
 
 test("a parent signs up and asks for a lesson; the admin schedules it with a teacher", async ({ browser }, info) => {
   const email = `parent-${Date.now()}-${info.project.name}@example.com`;
+  const child = `Ayaan-${info.project.name}-${Date.now().toString(36).slice(-5)}`;
   const parent = await (await browser.newContext()).newPage();
 
   await parent.goto("/signup");
@@ -17,7 +18,7 @@ test("a parent signs up and asks for a lesson; the admin schedules it with a tea
   await parent.getByRole("button", { name: "Create account" }).click();
   await expect(parent.getByRole("heading", { name: "Assalamu alaikum, Hafsa" })).toBeVisible();
 
-  await parent.getByLabel("Your child’s first name or nickname").fill("Ayaan");
+  await parent.getByLabel("Your child’s first name or nickname").fill(child);
   await parent.getByLabel("Which days and times suit you?").fill("Weekday evenings");
   await parent.getByRole("button", { name: "Ask for a first lesson" }).click();
   await expect(parent.getByText(/We’ll be in touch by email/)).toBeVisible();
@@ -34,10 +35,48 @@ test("a parent signs up and asks for a lesson; the admin schedules it with a tea
   await card.getByLabel("When (shown to the family)").fill("Sat 5pm Sydney");
   await card.getByLabel("Teacher").selectOption({ label: "Ustadha Amina" });
   await card.getByRole("button", { name: "Save" }).click();
-  await expect(card.getByText("scheduled", { exact: true })).toBeVisible();
+  await expect(card.getByText("scheduled", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   await parent.reload();
   await expect(parent.getByText(/Sat 5pm Sydney with Ustadha Amina/)).toBeVisible();
+
+  // Onboard, then a real lesson: teacher and child on separate devices, saved at the end.
+  await card.getByRole("button", { name: "Onboard" }).click();
+  await expect(card.getByText("Onboarded: linked to the teacher")).toBeVisible({ timeout: 15_000 });
+
+  const teacher = await (await browser.newContext()).newPage();
+  await teacher.goto("/login");
+  await teacher.getByRole("textbox", { name: "Email" }).fill("amina@example.com");
+  await teacher.locator("#password").fill("sabaq-demo");
+  await teacher.getByRole("button", { name: "Log in" }).click();
+  const row = teacher.getByRole("listitem").filter({ hasText: child });
+  await row.getByRole("button", { name: "Start lesson" }).click();
+  const code = (await row.locator("p.font-mono").innerText()).trim();
+  await row.getByRole("link", { name: "Open live view" }).click();
+  await expect(teacher.getByRole("img", { name: "Noorani Qaida page 1" })).toBeVisible();
+
+  const tablet = await (await browser.newContext()).newPage();
+  await tablet.goto("/join");
+  await tablet.getByRole("textbox", { name: "Room code" }).fill(code);
+  await tablet.getByRole("button", { name: "Join session" }).click();
+  await expect(teacher.getByRole("status", { name: "Student: Connected" })).toBeVisible({ timeout: 15_000 });
+
+  await teacher.getByRole("button", { name: /^Line 2, word 2\b/ }).click();
+  await teacher.getByRole("dialog").getByRole("button", { name: /Tajweed/ }).click();
+  await expect(tablet.getByRole("img", { name: "Mark: Tajweed rule (#1)" })).toBeVisible({ timeout: 5000 });
+  await teacher.getByRole("button", { name: "End session" }).click();
+  await teacher.getByRole("button", { name: "Yes, end" }).click();
+  await teacher.getByRole("button", { name: "Save and view summary" }).click();
+  await expect(teacher).toHaveURL(/\/lessons\/[0-9a-f-]{36}$/);
+  await expect(teacher.getByRole("heading", { name: `${child} · Qaida` })).toBeVisible();
+  await expect(teacher.getByText("Line 2, box 2")).toBeVisible();
+
+  await parent.reload();
+  await parent.getByRole("link", { name: /page 1\s+1 mark/ }).click();
+  await expect(parent.getByRole("heading", { name: `${child} · Qaida` })).toBeVisible();
+  await expect(parent.getByText(/· with Ustadha Amina/).filter({ visible: true })).toBeVisible();
+  await expect(parent.getByRole("img", { name: "Mark: Tajweed rule (#1)" })).toBeVisible();
+  await parent.goto("/welcome");
 
   await parent.getByRole("button", { name: "Log out" }).click();
   await expect(parent).toHaveURL(/\/login$/);

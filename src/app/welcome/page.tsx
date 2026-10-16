@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AccountShell } from "@/components/shell/AccountShell";
@@ -30,6 +31,20 @@ const STATUS = {
   cancelled: { label: "Cancelled", tone: "neutral" },
 } as const;
 
+type Lesson = {
+  id: string;
+  student_id: string;
+  book: Book;
+  started_at: string;
+  pages_covered: number[];
+  marks: { count: number }[];
+};
+
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const pagesLabel = (pages: number[]) =>
+  pages.length === 0 ? "no pages" : pages.length === 1 ? `page ${pages[0]}` : `pages ${pages[0]}–${pages.at(-1)}`;
+
 export default function Page() {
   return (
     <Suspense fallback={<LoadingBlock />}>
@@ -56,6 +71,37 @@ async function Content() {
   const teacherName = new Map((teachers ?? []).map((t) => [t.id as string, t.display_name as string]));
   const open = requests.some((r) => r.status === "requested" || r.status === "scheduled");
 
+  // RLS scopes all three: a parent sees their children; a teacher sees their approved students.
+  const [{ data: kids }, { data: links }, { data: lessons }] = await Promise.all([
+    supabase.from("students").select("id, nickname").order("created_at").returns<{ id: string; nickname: string }[]>(),
+    supabase
+      .from("class_members")
+      .select("student_id, status, classes(book, teacher_id)")
+      .eq("status", "approved")
+      .returns<{ student_id: string; classes: { book: Book; teacher_id: string } | null }[]>(),
+    supabase
+      .from("sessions")
+      .select("id, student_id, book, started_at, pages_covered, marks(count)")
+      .not("ended_at", "is", null)
+      .order("started_at", { ascending: false })
+      .limit(20)
+      .returns<Lesson[]>(),
+  ]);
+  const linkOf = new Map((links ?? []).map((l) => [l.student_id, l.classes]));
+  const missing = [...new Set((links ?? []).map((l) => l.classes?.teacher_id).filter((id): id is string => !!id))].filter(
+    (id) => !teacherName.has(id),
+  );
+  if (missing.length) {
+    const { data: more } = await supabase.from("profiles").select("id, display_name").in("id", missing);
+    for (const t of more ?? []) teacherName.set(t.id as string, t.display_name as string);
+  }
+  const children = (kids ?? []).map((k) => ({
+    ...k,
+    book: linkOf.get(k.id)?.book ?? ("qaida" as Book),
+    teacher: teacherName.get(linkOf.get(k.id)?.teacher_id ?? "") ?? null,
+    lessons: (lessons ?? []).filter((l) => l.student_id === k.id),
+  }));
+
   return (
     <AccountShell account={account}>
       <h1 className="text-3xl font-semibold tracking-tight">Assalamu alaikum, {account.displayName}</h1>
@@ -67,12 +113,74 @@ async function Content() {
         {account.role === "teacher" && (
           <Card>
             <CardHeader
-              title="Live lesson"
-              description="Start a lesson, then read the code out on your WhatsApp or Meet call."
+              title="Your students"
+              description="Start a lesson, read the code out on your WhatsApp or Meet call, and save it at the end."
             />
+            {children.length === 0 ? (
+              <p className="text-muted">No students yet. They’ll appear here once a family is linked to you.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {children.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div>
+                      <p className="font-medium">{c.nickname}</p>
+                      <p className="text-sm text-muted">
+                        {BOOK_LABEL[c.book]} · {c.lessons.length} {c.lessons.length === 1 ? "lesson" : "lessons"}
+                        {c.lessons[0] && (
+                          <>
+                            {" · "}
+                            <Link href={`/lessons/${c.lessons[0].id}`} className="text-primary underline-offset-4 hover:underline">
+                              last on {shortDate(c.lessons[0].started_at)}
+                            </Link>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <StartLiveLesson student={{ id: c.id, nickname: c.nickname, book: c.book }} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
+
+        {account.role === "teacher" && (
+          <Card>
+            <CardHeader title="Quick lesson" description="For a trial with someone who isn’t linked yet. It won’t be saved." />
             <StartLiveLesson />
           </Card>
         )}
+
+        {account.role === "guardian" &&
+          children.map((c) => (
+            <Card key={c.id}>
+              <CardHeader
+                title={c.nickname}
+                description={c.teacher ? `${BOOK_LABEL[c.book]} with ${c.teacher}` : "Not linked to a teacher yet"}
+              />
+              {c.lessons.length === 0 ? (
+                <p className="text-muted">No lessons saved yet. They’ll appear here after each lesson.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {c.lessons.slice(0, 5).map((l) => (
+                    <li key={l.id}>
+                      <Link
+                        href={`/lessons/${l.id}`}
+                        className="flex min-h-11 items-center justify-between gap-3 py-2 hover:text-primary"
+                      >
+                        <span>
+                          {shortDate(l.started_at)} · {pagesLabel(l.pages_covered)}
+                        </span>
+                        <span className="text-sm text-muted">
+                          {l.marks[0]?.count ?? 0} {l.marks[0]?.count === 1 ? "mark" : "marks"} ›
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          ))}
 
         {requests.length > 0 && (
           <Card>

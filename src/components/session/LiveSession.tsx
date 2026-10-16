@@ -16,6 +16,7 @@ import {
   type StudentPosition,
 } from "@/lib/session/events";
 import { saveLiveLesson } from "@/lib/session/actions";
+import { supabaseAuth } from "@/lib/auth/mode";
 import { useLiveSession, type PeerStatus } from "@/lib/session/use-live-session";
 import { usePrefs, type ReadingTheme } from "@/lib/prefs";
 import { BOOK_LABEL } from "@/lib/books";
@@ -223,11 +224,11 @@ function TeacherEnded({
     return (
       <FullScreenMessage title="Session ended">
         <p>
-          This room wasn’t started from your dashboard, so it isn’t linked to a student and can’t be saved. Start
-          lessons with “Start a session” to keep a summary.
+          This lesson wasn’t started for a particular student, so it can’t be saved. Start lessons from a
+          student’s name on your home page to keep a summary.
         </p>
-        <ButtonLink href="/teacher" size="lg" className="w-full">
-          Back to dashboard
+        <ButtonLink href={supabaseAuth ? "/welcome" : "/teacher"} size="lg" className="w-full">
+          Back to home
         </ButtonLink>
       </FullScreenMessage>
     );
@@ -256,7 +257,7 @@ function TeacherEnded({
               note: sessionStorage.getItem(`sabaq:note:${code}`) ?? "",
               marks: Object.values(shared.marks),
             });
-            if (result.ok) router.push(`/teacher/sessions/${result.id}`);
+            if (result.ok) router.push(supabaseAuth ? `/lessons/${result.id}` : `/teacher/sessions/${result.id}`);
             else setError(result.message);
           })
         }
