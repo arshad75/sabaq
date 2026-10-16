@@ -1,35 +1,46 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { PublicShell } from "@/components/shell/AppShell";
+import { TryIt } from "@/components/landing/TryIt";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { MarkLegend } from "@/components/ui/Indicators";
-import { ImagePageView } from "@/components/reading/ImagePageView";
-import { cellCenter, qaidaCells } from "@/lib/qaida/layout";
+import { site } from "@/lib/site";
 
-const DEMO_PAGE = 1;
-
-const STEPS: { icon: IconName; title: string; body: string }[] = [
-  {
-    icon: "book",
-    title: "Your child reads on a tablet",
-    body: "Big, clear pages. She taps the word she’s on, and her place moves with her.",
-  },
+const WHY: { icon: IconName; problem: string; answer: string }[] = [
   {
     icon: "eye",
-    title: "The teacher follows live",
-    body: "From anywhere, on a phone or tablet. No more squinting at a wobbly camera.",
+    problem: "A phone camera can’t show which letter a small finger is on.",
+    answer: "The teacher sees the exact letter, highlighted, as the child moves.",
   },
   {
-    icon: "edit",
-    title: "Mistakes are marked on the word",
-    body: "The child sees each mark appear, and every lesson builds a progress record.",
+    icon: "wifi",
+    problem: "Video freezes when the internet is weak.",
+    answer: "Only tiny messages travel. Each tap is smaller than this sentence.",
+  },
+  {
+    icon: "note",
+    problem: "Corrections are forgotten by the next lesson.",
+    answer: "Every mark is kept, so the next lesson starts where help is needed.",
   },
 ];
 
-const STATS: { value: string; label: string }[] = [
-  { value: "6", label: "letters to join a lesson" },
-  { value: "<1s", label: "for the teacher to see a tap" },
-  { value: "0", label: "photos, birthdays or video stored" },
+const STEPS: { icon: IconName; title: string; body: string }[] = [
+  {
+    icon: "key",
+    title: "Join with a six-letter code",
+    body: "The teacher reads out the code on the call. The child types it on the tablet. No app to install.",
+  },
+  {
+    icon: "eye",
+    title: "Read together",
+    body: "The child taps the letter she’s on. The teacher follows along on a phone or tablet, anywhere in the world.",
+  },
+  {
+    icon: "edit",
+    title: "Mark and remember",
+    body: "The teacher marks the word. The child sees it straight away, and the family can look back on every lesson.",
+  },
 ];
 
 const AUDIENCES: { icon: IconName; title: string; points: string[] }[] = [
@@ -37,7 +48,7 @@ const AUDIENCES: { icon: IconName; title: string; points: string[] }[] = [
     icon: "users",
     title: "For parents",
     points: [
-      "See what was covered and what needs practice after every lesson.",
+      "See what was covered and what needs practice after each lesson.",
       "You approve every teacher, and can remove one at any time.",
       "Export or delete your child’s data whenever you like.",
     ],
@@ -53,156 +64,118 @@ const AUDIENCES: { icon: IconName; title: string; points: string[] }[] = [
   },
 ];
 
-const DEMO_STEPS: { title: string; body: string }[] = [
-  { title: "Create a free account", body: "Takes two minutes. Just a parent’s name, email and a password." },
-  { title: "Book a demo class", body: "Pick a time that suits your family. Bring your child and a tablet." },
-  { title: "Meet your teacher", body: "If it’s a good fit, we link your child to the teacher’s class." },
-];
-
 const FAQ: { q: string; a: string }[] = [
   {
     q: "Do we still need WhatsApp or Meet?",
-    a: "Yes. Keep your usual call for voice. Sabaq only shares the page, so it works even when video doesn’t.",
+    a: "Yes. Keep your usual call for voice. Sabaq only shares the page, so it keeps working even when video doesn’t.",
   },
   {
     q: "Which books can we read?",
-    a: "The Noorani Qaida today. Quran pages are coming next, from a verified text source.",
+    a: "The Noorani Qaida today. Quran pages come next, from a verified text source; we never type the text ourselves.",
   },
   {
-    q: "What does it cost?",
-    a: "Nothing during the pilot. Sabaq is open source.",
+    q: "Who runs Sabaq? Is there a catch?",
+    a: "Sabaq is a free, open-source community project. There are no ads, no payments, and your data is never sold.",
   },
   {
     q: "What do you store about my child?",
-    a: "A nickname, their lessons and their marks. No birthday, photo or recordings unless you switch them on.",
+    a: "A nickname, their lessons and their marks. No birthday, no photo, and no recordings unless you switch them on.",
   },
 ];
 
-function LivePreview() {
-  const cells = qaidaCells(DEMO_PAGE);
-  const find = (line: number, word: number) => cells.find((c) => c.line === line && c.word === word);
-  const reading = find(3, 3);
-  const marked = find(2, 2);
-  const position = reading ? cellCenter(reading) : null;
-  const pins = marked ? [{ id: "demo", point: cellCenter(marked), markType: "tajweed" as const, label: "1" }] : [];
-
+function Check({ children }: { children: ReactNode }) {
   return (
-    <div
-      role="img"
-      aria-label="Preview: the child’s tablet and the teacher’s phone show the same Qaida page, with the child’s place highlighted and a teacher’s mark"
-      className="relative mx-auto w-full max-w-md pb-10 lg:max-w-none"
-    >
-      <div className="rounded-[2rem] border border-border bg-fg/90 p-3 shadow-xl">
-        <div className="mb-2 flex items-center justify-between px-2 text-xs font-medium text-bg/80">
-          <span>Child’s tablet</span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full rounded-full bg-success opacity-75 motion-safe:animate-ping" />
-              <span className="relative inline-flex size-2 rounded-full bg-success" />
-            </span>
-            Live
-          </span>
-        </div>
-        <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-white">
-          <ImagePageView page={DEMO_PAGE} position={position} pins={pins} className="rounded-none shadow-none ring-0" />
-        </div>
-      </div>
-
-      <div className="absolute -bottom-2 left-0 w-[42%] rounded-[1.5rem] border border-border bg-fg/90 p-2 shadow-2xl sm:-left-4">
-        <p className="mb-1 px-1 text-[10px] font-medium text-bg/80">Teacher’s phone</p>
-        <div className="aspect-[3/4] overflow-hidden rounded-xl bg-white">
-          <ImagePageView page={DEMO_PAGE} position={position} pins={pins} className="rounded-none shadow-none ring-0" />
-        </div>
-      </div>
-
-      <div className="absolute right-2 -bottom-2 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium shadow-lg">
-        <Icon name="wifi" size={14} className="text-primary" />
-        Synced in under a second
-      </div>
-    </div>
+    <li className="flex gap-2 text-muted">
+      <Icon name="check" className="mt-0.5 shrink-0 text-success" /> {children}
+    </li>
   );
 }
 
 export default function Home() {
   return (
     <PublicShell>
-      <section className="relative overflow-hidden rounded-3xl px-5 pt-6 pb-12 sm:px-8 sm:pt-10">
+      <section className="relative overflow-hidden rounded-3xl px-5 py-12 text-center sm:px-10 sm:py-16">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,var(--primary-soft),transparent_70%)]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--primary-soft),transparent_70%)]"
         />
-        <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
-          <div>
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary">
-              <Icon name="star" size={16} /> Free pilot · now booking demo classes
-            </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-              Your child’s Quran lesson, <span className="text-primary">on the same page.</span>
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-muted">
-              The teacher sees exactly where your child is reading, from anywhere in the world, and marks mistakes
-              right on the word. Keep your usual WhatsApp or Meet call for voice.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/signup" size="lg" icon="calendar">
-                Book a free demo class
-              </ButtonLink>
-              <ButtonLink href="/join" size="lg" variant="secondary" icon="play">
-                Join a lesson
-              </ButtonLink>
-            </div>
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-              <li className="inline-flex items-center gap-1.5">
-                <Icon name="wifi" size={16} className="text-primary" /> Works on slow connections
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <Icon name="shield" size={16} className="text-primary" /> Parents stay in control
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <Icon name="lock" size={16} className="text-primary" /> No video sent
-              </li>
-            </ul>
-          </div>
-          <div>
-            <LivePreview />
-          </div>
+        <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary">
+          <Icon name="shield" size={16} /> Open source · free for every family
+        </p>
+        <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+          Read together, <span className="text-primary">even when you’re apart.</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lg text-pretty text-muted">
+          Sabaq puts a child and their Quran teacher on the same page, live. The teacher sees exactly where the
+          child is reading and marks mistakes right on the word, from the other side of the world.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <ButtonLink href="#try" size="lg" icon="target">
+            Try it on this page
+          </ButtonLink>
+          <ButtonLink href="/join" size="lg" variant="secondary" icon="play">
+            Join a lesson
+          </ButtonLink>
         </div>
       </section>
 
-      <section aria-label="At a glance" className="grid gap-3 sm:grid-cols-3">
-        {STATS.map((s) => (
-          <div key={s.label} className="rounded-2xl border border-border bg-surface p-5 text-center">
-            <p className="text-4xl font-semibold tracking-tight text-primary">{s.value}</p>
-            <p className="mt-1 text-sm text-muted">{s.label}</p>
-          </div>
-        ))}
+      <section id="try" aria-labelledby="try-title" className="scroll-mt-6 py-6">
+        <div className="mb-6 text-center">
+          <h2 id="try-title" className="text-3xl font-semibold tracking-tight">
+            Try it right here
+          </h2>
+          <p className="mt-2 text-muted">
+            Tap a letter on the tablet and watch it reach the teacher’s phone. Then mark it, as the teacher would.
+          </p>
+        </div>
+        <TryIt />
       </section>
 
-      <section aria-labelledby="how" className="py-14">
-        <h2 id="how" className="text-3xl font-semibold tracking-tight">
-          How it works
+      <section aria-labelledby="why" className="py-14">
+        <h2 id="why" className="text-3xl font-semibold tracking-tight">
+          Why we made Sabaq
         </h2>
-        <ol className="mt-6 grid gap-4 md:grid-cols-3">
+        <p className="mt-3 max-w-3xl text-muted">
+          Many children learn with a teacher in another country, over a video call. It works, but it’s hard for
+          the teacher to follow, and harder still on a weak connection. Sabaq takes the reading off the camera.
+        </p>
+        <ul className="mt-6 grid gap-4 md:grid-cols-3">
+          {WHY.map((w) => (
+            <li key={w.problem} className="rounded-2xl border border-border bg-surface p-6">
+              <span className="mb-4 grid size-11 place-items-center rounded-xl bg-primary-soft text-primary">
+                <Icon name={w.icon} />
+              </span>
+              <p className="text-sm text-muted">{w.problem}</p>
+              <p className="mt-2 font-medium">{w.answer}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="how" className="rounded-3xl bg-surface-2 px-5 py-12 sm:px-10">
+        <h2 id="how" className="text-3xl font-semibold tracking-tight">
+          How a lesson goes
+        </h2>
+        <ol className="mt-6 grid gap-6 md:grid-cols-3">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="relative rounded-2xl border border-border bg-surface p-6">
-              <span aria-hidden className="absolute top-4 right-5 text-5xl font-semibold text-primary/15">
+            <li key={s.title} className="flex gap-4">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary font-semibold text-primary-fg">
                 {i + 1}
               </span>
-              <span className="mb-4 grid size-11 place-items-center rounded-xl bg-primary-soft text-primary">
-                <Icon name={s.icon} />
-              </span>
-              <h3 className="text-lg font-semibold">{s.title}</h3>
-              <p className="mt-1 text-muted">{s.body}</p>
+              <div>
+                <h3 className="text-lg font-semibold">{s.title}</h3>
+                <p className="mt-1 text-muted">{s.body}</p>
+              </div>
             </li>
           ))}
         </ol>
-        <div className="mt-8 rounded-2xl border border-border bg-surface-2 p-5">
+        <div className="mt-8 rounded-2xl border border-border bg-surface p-5">
           <p className="mb-3 font-medium">Five kinds of feedback, each with its own colour and symbol:</p>
           <MarkLegend />
         </div>
       </section>
 
-      <section aria-label="Who it’s for" className="grid gap-4 md:grid-cols-2">
+      <section aria-label="Who it’s for" className="grid gap-4 py-14 md:grid-cols-2">
         {AUDIENCES.map((a) => (
           <div key={a.title} className="rounded-2xl border border-border bg-surface p-6">
             <h2 className="flex items-center gap-2 text-xl font-semibold">
@@ -210,64 +183,39 @@ export default function Home() {
             </h2>
             <ul className="mt-4 space-y-3">
               {a.points.map((p) => (
-                <li key={p} className="flex gap-2 text-muted">
-                  <Icon name="check" className="mt-0.5 shrink-0 text-success" /> {p}
-                </li>
+                <Check key={p}>{p}</Check>
               ))}
             </ul>
           </div>
         ))}
       </section>
 
-      <section
-        aria-labelledby="demo"
-        className="my-14 rounded-3xl bg-primary px-6 py-10 text-primary-fg sm:px-10"
-      >
-        <h2 id="demo" className="text-3xl font-semibold tracking-tight">
-          Try a free demo class
+      <section aria-labelledby="learn" className="rounded-3xl bg-primary px-6 py-10 text-primary-fg sm:px-10">
+        <h2 id="learn" className="text-3xl font-semibold tracking-tight">
+          Looking for a teacher?
         </h2>
-        <p className="mt-2 max-w-2xl opacity-90">
-          See how it feels before you commit. No payment, no card, no app to install.
+        <p className="mt-3 max-w-2xl opacity-90">
+          Create an account and tell us a little about your child. We’ll arrange a first lesson with one of the
+          teachers using Sabaq, and if it suits you both, they’ll carry on from there.
         </p>
-        <ol className="mt-8 grid gap-6 md:grid-cols-3">
-          {DEMO_STEPS.map((s, i) => (
-            <li key={s.title} className="flex gap-4">
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-fg font-semibold text-primary">
-                {i + 1}
-              </span>
-              <div>
-                <h3 className="font-semibold">{s.title}</h3>
-                <p className="mt-1 text-sm opacity-90">{s.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
         <Link
           href="/signup"
-          className="mt-8 inline-flex min-h-14 items-center gap-2 rounded-xl bg-primary-fg px-6 text-lg font-medium text-primary hover:brightness-95"
+          className="mt-6 inline-flex min-h-14 items-center gap-2 rounded-xl bg-primary-fg px-6 text-lg font-medium text-primary hover:brightness-95"
         >
-          <Icon name="calendar" /> Book a free demo class
+          <Icon name="calendar" /> Ask for a first lesson
         </Link>
+        <p className="mt-4 text-sm opacity-80">Already have a teacher? They can invite you instead.</p>
       </section>
 
-      <section aria-labelledby="privacy" className="rounded-2xl border border-border bg-surface p-6">
+      <section aria-labelledby="privacy" className="mt-14 rounded-2xl border border-border bg-surface p-6">
         <h2 id="privacy" className="flex items-center gap-2 text-xl font-semibold">
           <Icon name="shield" className="text-primary" /> Built for children’s privacy
         </h2>
-        <ul className="mt-4 grid gap-2 text-muted sm:grid-cols-2">
-          <li className="flex gap-2">
-            <Icon name="check" className="mt-0.5 shrink-0 text-success" /> A nickname only. No birthdays, no photos.
-          </li>
-          <li className="flex gap-2">
-            <Icon name="check" className="mt-0.5 shrink-0 text-success" /> Recordings are off unless a parent turns
-            them on.
-          </li>
-          <li className="flex gap-2">
-            <Icon name="check" className="mt-0.5 shrink-0 text-success" /> Parents approve every teacher.
-          </li>
-          <li className="flex gap-2">
-            <Icon name="check" className="mt-0.5 shrink-0 text-success" /> Export or delete everything at any time.
-          </li>
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          <Check>A nickname only. No birthdays, no photos.</Check>
+          <Check>Recordings are off unless a parent turns them on.</Check>
+          <Check>Parents approve every teacher.</Check>
+          <Check>Export or delete everything at any time.</Check>
         </ul>
         <Link
           href="/privacy"
@@ -279,7 +227,7 @@ export default function Home() {
 
       <section aria-labelledby="faq" className="py-14">
         <h2 id="faq" className="text-3xl font-semibold tracking-tight">
-          Questions parents ask
+          Questions families ask
         </h2>
         <div className="mt-6 divide-y divide-border rounded-2xl border border-border bg-surface">
           {FAQ.map((f) => (
@@ -293,6 +241,22 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {site.repoUrl && (
+        <section className="mb-6 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border p-8 text-center">
+          <h2 className="text-xl font-semibold">Made in the open</h2>
+          <p className="max-w-xl text-muted">
+            Anyone can read the code, check how children’s data is handled, or suggest an improvement.
+          </p>
+          <a
+            href={site.repoUrl}
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 font-medium hover:bg-surface-2"
+          >
+            <Icon name="link" size={18} /> View the code on GitHub
+          </a>
+        </section>
+      )}
     </PublicShell>
   );
 }

@@ -48,6 +48,7 @@ export function ImagePageView({
   onPointTap,
   onPinTap,
   readingTheme = "paper",
+  showCredit = true,
   className,
 }: {
   page: number;
@@ -60,6 +61,8 @@ export function ImagePageView({
   onPointTap?: (point: PagePoint) => void;
   onPinTap?: (id: string) => void;
   readingTheme?: ReadingTheme;
+  /** Only turn off where the page already shows the Qaida credit (CC BY-SA). */
+  showCredit?: boolean;
   className?: string;
 }) {
   const cells = qaidaCells(page);
@@ -211,9 +214,11 @@ export function ImagePageView({
           );
         })}
       </div>
-      <figcaption className="border-t border-border bg-surface px-3 py-1.5">
-        <QaidaCredit />
-      </figcaption>
+      {showCredit && (
+        <figcaption className="border-t border-border bg-surface px-3 py-1.5">
+          <QaidaCredit />
+        </figcaption>
+      )}
     </figure>
   );
 }
