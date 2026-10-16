@@ -5,7 +5,6 @@ import { TryIt } from "@/components/landing/TryIt";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { MarkLegend } from "@/components/ui/Indicators";
-import { site } from "@/lib/site";
 
 const WHY: { icon: IconName; problem: string; answer: string }[] = [
   {
@@ -241,22 +240,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      {site.repoUrl && (
-        <section className="mb-6 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border p-8 text-center">
-          <h2 className="text-xl font-semibold">Made in the open</h2>
-          <p className="max-w-xl text-muted">
-            Anyone can read the code, check how children’s data is handled, or suggest an improvement.
-          </p>
-          <a
-            href={site.repoUrl}
-            rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 font-medium hover:bg-surface-2"
-          >
-            <Icon name="link" size={18} /> View the code on GitHub
-          </a>
-        </section>
-      )}
     </PublicShell>
   );
 }

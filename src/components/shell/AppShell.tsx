@@ -111,11 +111,6 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <Link href="/privacy" className="underline-offset-4 hover:underline">
             Privacy
           </Link>
-          {site.repoUrl && (
-            <a href={site.repoUrl} className="underline-offset-4 hover:underline" rel="noopener noreferrer">
-              Source code
-            </a>
-          )}
         </nav>
         <p className="mt-2">Open source under Apache-2.0.</p>
         <p className="mt-1 text-xs">
