@@ -87,13 +87,21 @@ export function SettingsForm() {
       </Card>
 
       <Card>
-        <CardHeader title="Sounds" description="Uses this device’s own Arabic voice; nothing is downloaded." />
-        <Switch
-          id="letter-sounds"
-          label="Say the letter when a child taps it in the Qaida"
-          checked={prefs.letterSounds}
-          onChange={(v) => setPrefs({ letterSounds: v })}
-        />
+        <CardHeader title="Sounds" description="Uses this device’s own voices; nothing is sent anywhere." />
+        <div className="space-y-4">
+          <Switch
+            id="letter-sounds"
+            label="Say the letter when a child taps it in the Qaida"
+            checked={prefs.letterSounds}
+            onChange={(v) => setPrefs({ letterSounds: v })}
+          />
+          <Switch
+            id="button-voices"
+            label="Read buttons aloud on the child’s screens, for children who can’t read yet"
+            checked={prefs.buttonVoices}
+            onChange={(v) => setPrefs({ buttonVoices: v })}
+          />
+        </div>
       </Card>
 
       <Card>

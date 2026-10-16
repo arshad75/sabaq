@@ -9,9 +9,19 @@ import { ImagePageView } from "./ImagePageView";
 import { Button } from "@/components/ui/Button";
 
 /** Solo practice inside an assignment's page range; nothing is sent anywhere. */
-export function PracticeReader({ book, from, to }: { book: Book; from: number; to: number }) {
+export function PracticeReader({
+  book,
+  from,
+  to,
+  startOpen = false,
+}: {
+  book: Book;
+  from: number;
+  to: number;
+  startOpen?: boolean;
+}) {
   const prefs = usePrefs();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [page, setPage] = useState(from);
   const [position, setPosition] = useState<string | null>(null);
   const [point, setPoint] = useState<PagePoint | null>(null);

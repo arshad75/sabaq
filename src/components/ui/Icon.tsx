@@ -4,6 +4,7 @@ import type { SVGProps } from "react";
 const PATHS = {
   repeat: "M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4",
   speech: "M4 5h16v11H9l-5 4z M8 9h8 M8 12h5",
+  volume: "M4 9h4l5-4v14l-5-4H4z M16.5 9a4 4 0 0 1 0 6 M19 6.5a7.5 7.5 0 0 1 0 11",
   wave: "M3 12c2-5 4-5 6 0s4 5 6 0 4-5 6 0",
   slip: "M12 3l9 16H3z M12 10v4 M12 17v.01",
   check: "M4 12.5l5 5L20 6.5",

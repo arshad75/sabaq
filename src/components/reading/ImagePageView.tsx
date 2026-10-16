@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/cn";
 import { MARK_CONFIG } from "@/lib/marks";
 import { QAIDA, qaidaImageSrc } from "@/lib/books";
@@ -10,7 +10,7 @@ import type { PagePoint } from "@/lib/session/events";
 import type { ReadingTheme } from "@/lib/prefs";
 import { Icon } from "@/components/ui/Icon";
 import { cellAt, cellCenter, nearestCell, qaidaCells, type QaidaCell } from "@/lib/qaida/layout";
-import { letterFor, speakLetter, type LetterName } from "@/lib/qaida/letters";
+import { letterFor, speakLetter, warmUpLetterVoice, type LetterName } from "@/lib/qaida/letters";
 
 export type PagePin = { id: string; point: PagePoint; markType: MarkType; label?: string };
 
@@ -70,12 +70,12 @@ export function ImagePageView({
   className?: string;
 }) {
   const cells = qaidaCells(page);
-  const [spoken, setSpoken] = useState<{ cell: QaidaCell; letter: LetterName } | null>(null);
+  const [spoken, setSpoken] = useState<{ cell: QaidaCell; letter: LetterName; silent: boolean } | null>(null);
+  useEffect(() => (speakLetters ? warmUpLetterVoice() : undefined), [speakLetters]);
   const sayLetter = (c: QaidaCell) => {
     const letter = speakLetters ? letterFor(page, c) : undefined;
     if (!letter) return setSpoken(null);
-    speakLetter(letter);
-    setSpoken({ cell: c, letter });
+    setSpoken({ cell: c, letter, silent: !speakLetter(letter) });
   };
   const handleTap = (e: MouseEvent<HTMLDivElement>) => {
     // With detected word boxes, only the boxes are tappable; free taps are for pages without them.
@@ -97,6 +97,7 @@ export function ImagePageView({
   return (
     <figure
       aria-label={`Qaida page ${page}`}
+      data-no-say
       className={cn("overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-border", className)}
     >
       <div
@@ -226,15 +227,21 @@ export function ImagePageView({
           );
         })}
         {spoken && (
-          <span
+          <button
             key={spoken.cell.id}
-            role="status"
-            className="animate-pop-in pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-full bg-fg px-3 py-1 text-sm font-semibold whitespace-nowrap text-bg shadow-lg"
+            type="button"
+            aria-label={`Hear ${spoken.letter.en} again`}
+            className="animate-pop-in absolute z-10 inline-flex min-h-9 -translate-x-1/2 -translate-y-full items-center gap-1.5 rounded-full bg-fg px-3 text-sm font-semibold whitespace-nowrap text-bg shadow-lg hover:brightness-110"
             style={at({ x: (spoken.cell.x0 + spoken.cell.x1) / 2, y: spoken.cell.y0 })}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSpoken({ ...spoken, silent: !speakLetter(spoken.letter) });
+            }}
           >
-            <Icon name="speech" size={14} className="mr-1 inline" />
+            <Icon name={spoken.silent ? "info" : "volume"} size={16} />
             {spoken.letter.en}
-          </span>
+            {spoken.silent && <span className="font-normal opacity-80">(no Arabic voice on this device)</span>}
+          </button>
         )}
       </div>
       {showCredit && (

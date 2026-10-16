@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PREFS_BOOT_SCRIPT } from "@/lib/prefs-boot";
+import { ServiceWorker } from "@/components/shell/ServiceWorker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         {children}
+        <ServiceWorker />
       </body>
     </html>
   );

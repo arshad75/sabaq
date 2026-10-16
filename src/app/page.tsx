@@ -116,6 +116,16 @@ export default function Home() {
             Join a lesson
           </ButtonLink>
         </div>
+        <p className="mt-5 text-sm text-muted">
+          Or on your own:{" "}
+          <Link href="/practice" className="font-medium text-primary underline-offset-4 hover:underline">
+            practise the Qaida
+          </Link>{" "}
+          ·{" "}
+          <Link href="/listen" className="font-medium text-primary underline-offset-4 hover:underline">
+            listen to a recitation
+          </Link>
+        </p>
       </section>
 
       <section id="try" aria-labelledby="try-title" className="scroll-mt-6 py-6">

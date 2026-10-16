@@ -1,10 +1,19 @@
-// Letter names for tappable boxes on the Qaida alphabet pages, spoken with the device's
-// Arabic text-to-speech voice. Only single-letter names are stored here, never Quran text.
+// Letter names for tappable boxes on the Qaida alphabet pages. A recorded clip in
+// public/audio/letters/<id>.mp3 plays when listed in RECORDED; otherwise the device's
+// Arabic text-to-speech voice says the name. Only single-letter names, never Quran text.
 import type { QaidaCell } from "./layout";
 
-export type LetterName = { en: string; ar: string };
+export type LetterName = { id: string; en: string; ar: string };
 
-const L = {
+// Ids of letters with a licensed recording in public/audio/letters (record in DATA_LICENSES.md).
+const RECORDED = new Set<string>([]);
+
+const withIds = <T extends Record<string, Omit<LetterName, "id">>>(names: T) =>
+  Object.fromEntries(Object.entries(names).map(([id, n]) => [id, { id, ...n }])) as {
+    [K in keyof T]: LetterName;
+  };
+
+const L = withIds({
   alif: { en: "Alif", ar: "ألف" },
   ba: { en: "Ba", ar: "باء" },
   ta: { en: "Ta", ar: "تاء" },
@@ -34,7 +43,7 @@ const L = {
   hha: { en: "Ha", ar: "هاء" },
   hamza: { en: "Hamza", ar: "همزة" },
   ya: { en: "Ya", ar: "ياء" },
-} satisfies Record<string, LetterName>;
+});
 
 // Box ids are "line:box", boxes counted right to left. Only rows whose detected boxes match
 // the printed grid one-to-one are listed; anything uncertain stays silent.
@@ -65,28 +74,63 @@ export function pagesWithLetterSounds(): number[] {
 
 let arabicVoice: SpeechSynthesisVoice | null | undefined;
 
-function pickVoice(): SpeechSynthesisVoice | null {
-  if (arabicVoice !== undefined) return arabicVoice;
+function findArabicVoice(): SpeechSynthesisVoice | null | undefined {
   const voices = window.speechSynthesis.getVoices();
-  if (voices.length === 0) return null; // not loaded yet; try again next tap
-  arabicVoice = voices.find((v) => v.lang.toLowerCase().startsWith("ar")) ?? null;
-  return arabicVoice;
+  if (voices.length === 0) return undefined; // still loading
+  const arabic = voices.filter((v) => v.lang.toLowerCase().replace("_", "-").startsWith("ar"));
+  // Prefer an on-device voice: network voices can be silent when offline.
+  return arabic.find((v) => v.localService) ?? arabic[0] ?? null;
+}
+
+/** Starts loading the device's voices early; Chrome loads them asynchronously. */
+export function warmUpLetterVoice(onReady?: (hasArabic: boolean) => void): () => void {
+  if (!canSpeakLetters()) {
+    onReady?.(false);
+    return () => {};
+  }
+  const synth = window.speechSynthesis;
+  const check = () => {
+    const v = findArabicVoice();
+    if (v === undefined) return;
+    arabicVoice = v;
+    onReady?.(v !== null);
+  };
+  check();
+  synth.addEventListener("voiceschanged", check);
+  return () => synth.removeEventListener("voiceschanged", check);
 }
 
 export function canSpeakLetters(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-/** Says the letter's Arabic name. Returns false if this device can't speak Arabic. */
+/** Says the letter's Arabic name. Returns false if this device can't make a sound for it. */
 export function speakLetter(letter: LetterName): boolean {
+  if (typeof window === "undefined") return false;
+  if (RECORDED.has(letter.id)) {
+    clip?.pause();
+    clip = new Audio(`/audio/letters/${letter.id}.mp3`);
+    void clip.play().catch(() => speakWithVoice(letter));
+    return true;
+  }
+  return speakWithVoice(letter);
+}
+
+let clip: HTMLAudioElement | null = null;
+
+function speakWithVoice(letter: LetterName): boolean {
   if (!canSpeakLetters()) return false;
   const synth = window.speechSynthesis;
-  synth.cancel();
+  if (arabicVoice === undefined) arabicVoice = findArabicVoice();
+  if (arabicVoice === null) return false;
+  // Chrome can get stuck paused; cancel() only when something is actually playing.
+  if (synth.paused) synth.resume();
+  if (synth.speaking || synth.pending) synth.cancel();
   const u = new SpeechSynthesisUtterance(letter.ar);
-  u.lang = "ar-SA";
+  u.lang = arabicVoice?.lang ?? "ar-SA";
+  if (arabicVoice) u.voice = arabicVoice;
   u.rate = 0.8;
-  const voice = pickVoice();
-  if (voice) u.voice = voice;
+  u.volume = 1;
   synth.speak(u);
-  return voice !== null || synth.getVoices().length === 0;
+  return true;
 }

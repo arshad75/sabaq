@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PublicShell } from "@/components/shell/AppShell";
 import { JoinForm } from "@/components/session/JoinForm";
+import { VoiceGuide } from "@/components/audio/VoiceGuide";
 import { Card } from "@/components/ui/Card";
 import { ErrorState, LoadingBlock } from "@/components/ui/States";
 import { getPreviewState } from "@/lib/preview";
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "Join a session" };
 export default function Page(props: PageProps<"/join">) {
   return (
     <PublicShell>
+      <VoiceGuide />
       <div className="mx-auto max-w-md">
         <h1 className="text-3xl font-semibold tracking-tight">Join a session</h1>
         <p className="mt-1 mb-6 text-muted">Enter the 6-character code from your teacher.</p>
