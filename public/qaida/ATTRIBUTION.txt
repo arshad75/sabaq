@@ -1,0 +1,7 @@
+Noorani Qaida - Indian Edition, by Qamar Apps (https://www.qamarapps.com)
+Licensed under Creative Commons Attribution-ShareAlike 4.0 International
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Changes made: pages 1-39 extracted from the publisher's PDF, resized to 900 px wide
+and converted to WebP (scripts/extract-qaida.py). The cover is kept as cover.webp.
+These images remain under CC BY-SA 4.0, separate from this project's Apache-2.0 code.
