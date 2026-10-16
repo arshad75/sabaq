@@ -47,7 +47,14 @@ function NavList({ items, variant, pathname }: { items: NavItem[]; variant: Vari
               isActive(item, pathname) ? "text-primary" : "text-muted",
             )}
           >
-            <Icon name={item.icon} size={22} />
+            <span
+              className={cn(
+                "grid h-7 w-14 place-items-center rounded-full transition-colors",
+                isActive(item, pathname) && "bg-primary-soft",
+              )}
+            >
+              <Icon name={item.icon} size={22} />
+            </span>
             {item.label}
           </Link>
         </li>

@@ -123,7 +123,9 @@ async function Content() {
                 {children.map((c) => (
                   <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                     <div>
-                      <p className="font-medium">{c.nickname}</p>
+                      <Link href={`/children/${c.id}`} className="font-medium text-primary underline-offset-4 hover:underline">
+                        {c.nickname}
+                      </Link>
                       <p className="text-sm text-muted">
                         {BOOK_LABEL[c.book]} · {c.lessons.length} {c.lessons.length === 1 ? "lesson" : "lessons"}
                         {c.lessons[0] && (
@@ -157,6 +159,11 @@ async function Content() {
               <CardHeader
                 title={c.nickname}
                 description={c.teacher ? `${BOOK_LABEL[c.book]} with ${c.teacher}` : "Not linked to a teacher yet"}
+                action={
+                  <ButtonLink href={`/children/${c.id}`} variant="secondary" icon="chart">
+                    Progress & badges
+                  </ButtonLink>
+                }
               />
               {c.lessons.length === 0 ? (
                 <p className="text-muted">No lessons saved yet. They’ll appear here after each lesson.</p>

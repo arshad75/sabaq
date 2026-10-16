@@ -42,3 +42,25 @@ insert into public.class_members (class_id, student_id, status, approved_by_guar
   ('40000000-0000-4000-8000-000000000003', '30000000-0000-4000-8000-000000000004', 'approved', now() - interval '20 days'),
   ('40000000-0000-4000-8000-000000000003', '30000000-0000-4000-8000-000000000002', 'invited', null),
   ('40000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000006', 'approved', now() - interval '25 days');
+
+-- Saved lessons so progress, badges and stars have something to show (local only).
+-- Sumayya (Qaida, Ustadha Amina): one lesson a week for five weeks, pages advancing.
+insert into public.sessions (id, class_id, teacher_id, student_id, room_code, book, started_at, ended_at, teacher_note, pages_covered)
+select ('50000000-0000-4000-8000-00000000000' || w)::uuid,
+       '40000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001',
+       '30000000-0000-4000-8000-000000000006', 'QAZDK' || (w + 1), 'qaida',
+       now() - make_interval(days => 7 * (5 - w)) - interval '1 hour',
+       now() - make_interval(days => 7 * (5 - w)) - interval '30 minutes',
+       case w when 5 then 'Lovely reading today. Practise the joined letters once a day.' else '' end,
+       array[w, w + 1]
+from generate_series(1, 5) w;
+
+insert into public.marks (session_id, student_id, mark_type, book, page, x, y, created_by)
+select ('50000000-0000-4000-8000-00000000000' || w)::uuid, '30000000-0000-4000-8000-000000000006',
+       (array['good','good','tajweed','good','repeat','good','pronunciation','good'])[1 + ((w + i) % 8)]::public.mark_type,
+       'qaida', w + (i % 2), 0.2 + 0.1 * (i % 6), 0.25 + 0.08 * i, '10000000-0000-4000-8000-000000000001'
+from generate_series(1, 5) w, generate_series(1, 6) i;
+
+insert into public.assignments (student_id, teacher_id, kind, book, from_page, to_page, due_on, teacher_feedback)
+values ('30000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000001', 'new', 'qaida', 6, 7,
+        current_date + 5, 'Read each line three times, slowly.');

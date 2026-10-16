@@ -32,6 +32,15 @@
   --status-needs-work: light-dark(#f2a65a, #9a5a1c);
   --status-solid: light-dark(#4fa36b, #2f7a4a);
 
+  /* Soft tile backgrounds for friendly home screens; text stays --fg for contrast. */
+  --tile-mint: light-dark(#dff3ec, #17332c);
+  --tile-sky: light-dark(#dfeefb, #172a3b);
+  --tile-peach: light-dark(#fde8dc, #3a2519);
+  --tile-lilac: light-dark(#ece6fb, #2a2340);
+  --tile-sun: light-dark(#fdf2cf, #3a3115);
+  --tile-rose: light-dark(#fbe3ea, #3a1d26);
+  --star: light-dark(#c98a00, #f5c542);
+
   --reading-bg: light-dark(#fffdf8, #181816);
   --reading-fg: light-dark(#1c1b19, #f1efe9);
   --reading-scale: 1;
@@ -82,6 +91,13 @@
   --color-mark-tajweed: var(--mark-tajweed);
   --color-mark-slip: var(--mark-slip);
   --color-mark-good: var(--mark-good);
+  --color-tile-mint: var(--tile-mint);
+  --color-tile-sky: var(--tile-sky);
+  --color-tile-peach: var(--tile-peach);
+  --color-tile-lilac: var(--tile-lilac);
+  --color-tile-sun: var(--tile-sun);
+  --color-tile-rose: var(--tile-rose);
+  --color-star: var(--star);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -102,6 +118,16 @@ body {
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+  70% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

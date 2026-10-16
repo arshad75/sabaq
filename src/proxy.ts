@@ -36,6 +36,8 @@ export const config = {
   matcher: [
     "/welcome/:path*",
     "/lessons/:path*",
+    "/children/:path*",
+    "/account/:path*",
     "/admin/:path*",
     "/login/:path*",
     "/signup",
