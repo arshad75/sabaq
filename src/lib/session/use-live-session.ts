@@ -14,7 +14,8 @@ import {
   type SessionRole,
   type SharedState,
 } from "./events";
-import { createLocalTransport, type SessionTransport } from "./transport";
+import { createLocalTransport, createRealtimeTransport, type SessionTransport } from "./transport";
+import { getBrowserSupabase } from "@/lib/supabase/browser";
 
 export const HEARTBEAT_MS = 2000;
 export const STALE_MS = 6000;
@@ -83,7 +84,10 @@ export function useLiveSession({
   }, [shared, code, role]);
 
   useEffect(() => {
-    const t = createLocalTransport(code, { latencyMs });
+    const supabase = getBrowserSupabase();
+    const t = supabase
+      ? createRealtimeTransport(code, supabase, { onReconnect: () => hello() })
+      : createLocalTransport(code, { latencyMs });
     transportRef.current = t;
     let lastHeard: number | null = null;
     let peerLeft = false;

@@ -2,6 +2,30 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Pilot hosting (Vercel Hobby + Supabase Free, Singapore)
+
+- Pilot for ~6-7 students runs free: Vercel Hobby (`sin1`) + Supabase Free (Singapore,
+  roughly midway between India and Australia) + GitHub Actions. Steps in `docs/DEPLOY.md`.
+- Added `@supabase/supabase-js` (Realtime) and the `supabase` CLI (dev: local stack,
+  migrations, pgTAP RLS tests). Requested by the user as part of "create the stack".
+- Live sync uses Supabase Realtime Broadcast on public channel `room:<code>` when
+  `NEXT_PUBLIC_SUPABASE_*` is set, else the same-browser BroadcastChannel. Nothing is
+  stored; events queue while offline and full state resyncs on rejoin. Moving to
+  private channels (RLS on `realtime.messages`) comes with Supabase Auth.
+- Schema (`supabase/migrations`) follows datamodels.md with these choices:
+  `profiles.id` *is* the auth user id (no separate `user_id`); `students.user_id` is the
+  child's tablet identity, set only by the server; invites are a separate
+  `class_invites` table (token hash only) redeemed by the guardian through
+  `redeem_class_invite`, which approves straight away; `teacher_notes` added (readable
+  by the guardian, who can export everything); child history survives class/teacher
+  deletion (`set null`). PINs are bcrypt in Postgres with 5-try/60-second lockout,
+  checked only by the server role.
+- Tables are granted explicitly (`auto_expose_new_tables = false`, anon gets nothing);
+  `pin_hash` and lockout columns aren't client-readable. RLS relationship checks are
+  SECURITY DEFINER helpers in an unexposed `private` schema.
+- Prototype login cookies are now HMAC-signed (`SESSION_SECRET`) instead of an
+  in-memory map, so logins survive serverless instances.
+
 ## 2026-10-16: Renamed to Sabaq
 
 - The app is now **Sabaq** (سبق, "lesson"), replacing the working name Lesson Sync.

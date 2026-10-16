@@ -1,9 +1,66 @@
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import type { SessionEvent } from "./events";
 
 export interface SessionTransport {
   send(event: SessionEvent): void;
   subscribe(handler: (event: SessionEvent) => void): () => void;
   close(): void;
+}
+
+const EVENT = "sabaq";
+const MAX_QUEUED = 200;
+
+/**
+ * Cross-device sync over Supabase Realtime Broadcast (nothing is stored).
+ * Events sent while the socket is down are queued and flushed on rejoin;
+ * `onReconnect` lets the caller resync full state after a drop.
+ */
+export function createRealtimeTransport(
+  roomCode: string,
+  client: SupabaseClient,
+  opts: { onReconnect?: () => void } = {},
+): SessionTransport {
+  const handlers = new Set<(e: SessionEvent) => void>();
+  const queue: SessionEvent[] = [];
+  let joined = false;
+  let everJoined = false;
+  let closed = false;
+
+  const push = (channel: RealtimeChannel, event: SessionEvent) =>
+    void channel.send({ type: "broadcast", event: EVENT, payload: event });
+
+  const channel = client
+    .channel(`room:${roomCode}`, { config: { broadcast: { self: false, ack: false } } })
+    .on("broadcast", { event: EVENT }, ({ payload }) => handlers.forEach((h) => h(payload as SessionEvent)))
+    .subscribe((state) => {
+      if (closed) return;
+      joined = state === "SUBSCRIBED";
+      if (!joined) return;
+      for (const e of queue.splice(0)) push(channel, e);
+      if (everJoined) opts.onReconnect?.();
+      everJoined = true;
+    });
+
+  return {
+    send(event) {
+      if (closed) return;
+      if (joined) return push(channel, event);
+      // Presence is only useful live; everything else is replayed on rejoin.
+      if (event.type === "presence") return;
+      if (queue.length >= MAX_QUEUED) queue.shift();
+      queue.push(event);
+    },
+    subscribe(handler) {
+      handlers.add(handler);
+      return () => handlers.delete(handler);
+    },
+    close() {
+      if (closed) return;
+      closed = true;
+      handlers.clear();
+      void client.removeChannel(channel);
+    },
+  };
 }
 
 /**

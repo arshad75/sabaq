@@ -1,0 +1,47 @@
+name: Nightly backup
+
+# Encrypted pg_dump of the hosted database, kept as a 30-day workflow artifact.
+# The nightly connection also keeps the free Supabase project from pausing after a week idle.
+# Off until the repo variable BACKUPS_ENABLED=true and these secrets exist:
+#   SUPABASE_DB_URL    Session pooler connection string (IPv4; Project > Connect)
+#   BACKUP_PASSPHRASE  Long random passphrase; store it outside GitHub too, or backups are unreadable
+# Restore: gpg -d sabaq-DATE.dump.gpg > sabaq.dump && pg_restore --no-owner -d "$DB_URL" sabaq.dump
+
+on:
+  schedule:
+    - cron: "30 17 * * *" # 23:00 IST / 04:30 AEDT, outside lesson hours
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: ${{ vars.BACKUPS_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install pg_dump 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          file="sabaq-$(date -u +%F).dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
+            --format=custom --no-owner --no-privileges --schema=public --schema=auth -f "$file"
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase-fd 0 -o "$file.gpg" "$file" <<< "$BACKUP_PASSPHRASE"
+          shred -u "$file"
+          echo "FILE=$file.gpg" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}
+          retention-days: 30
+          if-no-files-found: error

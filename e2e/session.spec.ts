@@ -92,6 +92,8 @@ test("qaida: student points at a spot and teacher marks it on the page image", a
 });
 
 test("after a dropped connection the teacher catches up with what the student did offline", async ({ browser }) => {
+  // Simulates the drop by stubbing BroadcastChannel; realtime.spec.ts covers drops over Supabase.
+  test.skip(!!process.env.NEXT_PUBLIC_SUPABASE_URL, "same-browser transport only");
   const code = generateRoomCode();
   const context = await browser.newContext();
   const errors: string[] = [];
