@@ -11,6 +11,7 @@ is used. If unsure, stop and ask.
 | Geist, Geist Mono (UI font) | Vercel, via `next/font/google` (self-hosted at build time) | SIL Open Font License 1.1 | App chrome | No runtime requests to Google. |
 | Arabic stand-in font | Operating-system fonts only (CSS stack) | n/a, nothing shipped | Reading view until M1 | Replace with a licensed Quranic font in M1. |
 | Noorani Qaida – Indian Edition, pages 1–39 (`public/qaida/*.webp`) | Qamar Apps, https://www.qamarapps.com (licence: https://www.qamarapps.com/license.html, also printed on page 3 of the PDF) | CC BY-SA 4.0 | Qaida lessons (live session, practice, summaries) | Extracted from the publisher's PDF with `scripts/extract-qaida.py`, resized to 900 px, WebP. Attribution shown under every page and in `public/qaida/ATTRIBUTION.txt`. ShareAlike: these images (and any edits to them) stay CC BY-SA, separate from the Apache-2.0 code. The source PDF is not committed. |
+| Qaida word-box layout (`src/lib/qaida/layout.json`) | Measured from the page images above by `scripts/qaida-layout.py` | Treated as CC BY-SA 4.0 (derived from the images) | Tappable words on Qaida pages | Rectangles only, no text. Credit as above. |
 
 ## Candidates for M1 (not yet evaluated, do not use)
 

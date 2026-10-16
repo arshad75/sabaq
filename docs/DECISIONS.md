@@ -2,6 +2,24 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Tappable words on Qaida pages (detected boxes, not retyped text)
+
+- **Why not retype the Qaida as text?** Later pages contain Quran verses (hard rule 1),
+  and retyping 39 pages by hand would be error-prone. The licensed page images stay the
+  source of truth.
+- **How.** `scripts/qaida-layout.py` (stdlib only) finds the page frame, the ruled
+  lines, printed column dividers and gaps between words, and writes
+  `src/lib/qaida/layout.json`: about 2,000 boxes (line, word right-to-left, rectangle as
+  fractions). No text is extracted.
+- **In the app.** Each box is a button. The student's tap highlights her word on both
+  screens; teacher marks colour the word and add a numbered badge. Taps and marks are
+  still sent as points (the box centre), so no sync or storage change was needed;
+  `nearestCell` maps older free-tap points onto boxes.
+- **Known limits.** Detection is automatic: a few boxes split or merge oddly (e.g. a
+  trailing letter split off, some headers and ornaments are tappable). The Urdu notes on
+  page 37 form rough blocks. Rerun the script after any tweak; corrections could go in
+  a small per-page override file later.
+
 ## 2026-10-16: Findings from the two-tab live lesson test
 
 - **Numbered marks.** Each live mark gets a number (`n`), shown on its pin, in the marks

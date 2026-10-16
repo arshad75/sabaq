@@ -9,6 +9,7 @@ import type { MarkType } from "@/lib/domain/types";
 import type { PagePoint } from "@/lib/session/events";
 import type { ReadingTheme } from "@/lib/prefs";
 import { Icon } from "@/components/ui/Icon";
+import { cellAt, cellCenter, nearestCell, qaidaCells } from "@/lib/qaida/layout";
 
 export type PagePin = { id: string; point: PagePoint; markType: MarkType; label?: string };
 
@@ -61,12 +62,23 @@ export function ImagePageView({
   readingTheme?: ReadingTheme;
   className?: string;
 }) {
+  const cells = qaidaCells(page);
   const handleTap = (e: MouseEvent<HTMLDivElement>) => {
-    if (!onPointTap) return;
+    // With detected word boxes, only the boxes are tappable; free taps are for pages without them.
+    if (!onPointTap || cells.length > 0) return;
     const r = e.currentTarget.getBoundingClientRect();
     const clamp = (v: number) => Math.min(1, Math.max(0, v));
     onPointTap({ x: clamp((e.clientX - r.left) / r.width), y: clamp((e.clientY - r.top) / r.height) });
   };
+
+  const positionCell = position ? nearestCell(page, position) : undefined;
+  const selectedCell = selected ? cellAt(page, selected) : undefined;
+  const pinCell = new Map(pins.map((p) => [p.id, nearestCell(page, p.point)]));
+  const pinsByCell = new Map<string, PagePin>();
+  for (const p of pins) {
+    const c = pinCell.get(p.id);
+    if (c) pinsByCell.set(c.id, p);
+  }
 
   return (
     <figure
@@ -74,7 +86,7 @@ export function ImagePageView({
       className={cn("overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-border", className)}
     >
       <div
-        className={cn("relative select-none", onPointTap && "cursor-crosshair")}
+        className={cn("relative select-none", onPointTap && cells.length === 0 && "cursor-crosshair")}
         onClick={handleTap}
         data-testid="qaida-page"
       >
@@ -89,7 +101,55 @@ export function ImagePageView({
           className="block h-auto w-full"
           style={{ filter: THEME_FILTER[readingTheme] }}
         />
-        {position && (
+        {cells.map((c) => {
+          const pin = pinsByCell.get(c.id);
+          const cfg = pin ? MARK_CONFIG[pin.markType] : undefined;
+          const isPosition = positionCell?.id === c.id;
+          const isSelected = selectedCell?.id === c.id || (!!pin && selectedPinId === pin.id);
+          const label = [
+            `Line ${c.line}, word ${c.word}`,
+            isPosition && "current position",
+            cfg && `marked ${cfg.label}${pin?.label ? ` (#${pin.label})` : ""}`,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          const cls = cn(
+            "absolute rounded-md transition-colors",
+            isPosition && "bg-primary/20 ring-3 ring-primary",
+            cfg && "border-b-4",
+            isSelected && "outline-3 outline-offset-1 outline-dashed outline-focus",
+          );
+          const style = {
+            left: `${c.x0 * 100}%`,
+            top: `${c.y0 * 100}%`,
+            width: `${(c.x1 - c.x0) * 100}%`,
+            height: `${(c.y1 - c.y0) * 100}%`,
+            borderColor: cfg?.colorVar,
+            backgroundColor: cfg && !isPosition ? `color-mix(in srgb, ${cfg.colorVar} 14%, transparent)` : undefined,
+          };
+          if (!onPointTap) {
+            return isPosition || cfg ? (
+              <span key={c.id} aria-label={label} className={cls} style={style} data-cell={c.id} />
+            ) : null;
+          }
+          return (
+            <button
+              key={c.id}
+              type="button"
+              aria-label={label}
+              aria-pressed={isPosition || isSelected}
+              data-cell={c.id}
+              className={cn(cls, "cursor-pointer hover:bg-primary/10 focus-visible:outline-3 focus-visible:outline-focus")}
+              style={style}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (pin && onPinTap) onPinTap(pin.id);
+                else onPointTap(cellCenter(c));
+              }}
+            />
+          );
+        })}
+        {position && !positionCell && (
           <span
             role="img"
             aria-label="Current position"
@@ -97,7 +157,7 @@ export function ImagePageView({
             style={at(position)}
           />
         )}
-        {selected && (
+        {selected && !selectedCell && (
           <span
             aria-hidden
             className="pointer-events-none absolute size-12 -translate-x-1/2 -translate-y-1/2 rounded-full outline-3 outline-dashed outline-focus"
@@ -106,16 +166,19 @@ export function ImagePageView({
         )}
         {pins.map((pin) => {
           const cfg = MARK_CONFIG[pin.markType];
+          const cell = pinCell.get(pin.id);
+          // On a word box the badge sits on its top-right corner; otherwise at the tapped point.
+          const anchor = cell ? { x: cell.x1, y: cell.y0 } : pin.point;
           const cls = cn(
             "absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] bg-white shadow",
-            onPinTap ? "size-11" : "size-9",
+            cell ? "size-8" : onPinTap ? "size-11" : "size-9",
             selectedPinId === pin.id && "outline-3 outline-offset-2 outline-dashed outline-focus",
           );
-          const style = { ...at(pin.point), borderColor: cfg.colorVar, color: cfg.colorVar };
+          const style = { ...at(anchor), borderColor: cfg.colorVar, color: cfg.colorVar };
           const name = `Mark: ${cfg.label}${pin.label ? ` (#${pin.label})` : ""}`;
           const content = (
             <>
-              <Icon name={cfg.icon} size={18} strokeWidth={2.5} />
+              <Icon name={cfg.icon} size={cell ? 15 : 18} strokeWidth={2.5} />
               {pin.label && (
                 <span
                   aria-hidden
@@ -126,7 +189,7 @@ export function ImagePageView({
               )}
             </>
           );
-          return onPinTap ? (
+          return onPinTap && !cell ? (
             <button
               key={pin.id}
               type="button"
@@ -141,7 +204,8 @@ export function ImagePageView({
               {content}
             </button>
           ) : (
-            <span key={pin.id} role="img" aria-label={name} className={cls} style={style}>
+            // The word box itself is the button; the badge only shows the mark.
+            <span key={pin.id} role="img" aria-label={name} className={cn(cls, "pointer-events-none")} style={style}>
               {content}
             </span>
           );

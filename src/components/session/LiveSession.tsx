@@ -19,6 +19,7 @@ import { saveLiveLesson } from "@/lib/session/actions";
 import { useLiveSession, type PeerStatus } from "@/lib/session/use-live-session";
 import { usePrefs, type ReadingTheme } from "@/lib/prefs";
 import { BOOK_LABEL } from "@/lib/books";
+import { cellAt } from "@/lib/qaida/layout";
 import { cn } from "@/lib/cn";
 import { Banner } from "@/components/ui/States";
 import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
@@ -57,6 +58,8 @@ function pointArea({ x, y }: PagePoint): string {
 
 export function markLocation(m: Pick<LiveMark, "page" | "word" | "point">): string {
   if (m.word) return `Page ${m.page} · ayah ${m.word.ayah}, word ${m.word.wordIndex}`;
+  const cell = m.point ? cellAt(m.page, m.point) : undefined;
+  if (cell) return `Page ${m.page} · line ${cell.line}, word ${cell.word}`;
   return `Page ${m.page} · ${m.point ? pointArea(m.point) : "spot on page"}`;
 }
 
@@ -343,9 +346,7 @@ function StudentView({
       </header>
       {banners}
       <main id="main" className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-4">
-        <p className="mb-2 text-center text-sm text-muted">
-          {book === "qaida" ? "Tap where you are reading." : "Tap the word you are reading."}
-        </p>
+        <p className="mb-2 text-center text-sm text-muted">Tap the word you are reading.</p>
         <PageTurner onNext={() => go(page + 1)} onPrev={() => go(Math.max(1, page - 1))}>
           <SessionPage
             book={book}
@@ -485,7 +486,6 @@ function TeacherView({
         >
           <MarksPanel
             code={code}
-            book={book}
             marks={markList}
             selectedId={selectedMark?.id ?? null}
             onSelect={(m) => {
@@ -509,7 +509,7 @@ function TeacherView({
               ? `#${selectedMark.n} · ${markLocation(selectedMark)}`
               : selected.word
                 ? `p.${selected.page} · ayah ${selected.word.ayah}, word ${selected.word.wordIndex}`
-                : `p.${selected.page} · spot you tapped`
+                : `p.${selected.page} · ${selected.point && cellAt(selected.page, selected.point) ? markLocation({ page: selected.page, word: null, point: selected.point }).replace(/^Page \d+ · /, "") : "spot you tapped"}`
           }
           current={selectedMark}
           onPick={(t) => {
@@ -594,7 +594,6 @@ function MarkPalette({
 
 function MarksPanel({
   code,
-  book,
   marks,
   selectedId,
   onSelect,
@@ -602,7 +601,6 @@ function MarksPanel({
   onClose,
 }: {
   code: string;
-  book: Book;
   marks: LiveMark[];
   selectedId: string | null;
   onSelect: (mark: LiveMark) => void;
@@ -621,7 +619,7 @@ function MarksPanel({
       </div>
       {marks.length === 0 ? (
         <p className="rounded-xl bg-surface-2 p-4 text-sm text-muted">
-          No marks yet. Tap {book === "qaida" ? "a spot" : "a word"} on the page to mark it.
+          No marks yet. Tap a word on the page to mark it.
         </p>
       ) : (
         <ul className="space-y-2">

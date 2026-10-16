@@ -11,6 +11,7 @@ import type {
   Student,
 } from "@/lib/domain/types";
 import { buildPlaceholderPage } from "@/lib/quran/placeholder-source";
+import { cellCenter, qaidaCells } from "@/lib/qaida/layout";
 
 // Fixed clock so mock screens render deterministically (and prerender cleanly).
 export const MOCK_NOW = "2026-10-16T09:00:00.000Z";
@@ -119,7 +120,9 @@ function buildSessionsAndMarks() {
         const words = p.book === "quran" ? buildPlaceholderPage(pg).lines.flatMap((l) => l.words) : [];
         const pick = () => {
           if (p.book === "qaida") {
-            const point = { x: 0.15 + rand() * 0.7, y: 0.2 + rand() * 0.7 };
+            const cells = qaidaCells(pg);
+            const c = cells[Math.floor(rand() * cells.length)];
+            const point = c ? cellCenter(c) : { x: 0.15 + rand() * 0.7, y: 0.2 + rand() * 0.7 };
             return { book: p.book, page: pg, surah: null, ayah: null, wordIndex: null, ...point };
           }
           const w = words[Math.floor(rand() * words.length)];

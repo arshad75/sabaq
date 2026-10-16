@@ -72,12 +72,18 @@ test("qaida: student points at a spot and teacher marks it on the page image", a
   await student.goto(`/session/${code}?role=student`);
   await expect(student.getByRole("img", { name: "Noorani Qaida page 1" })).toBeVisible({ timeout: 5000 });
 
-  await student.getByTestId("qaida-page").click({ position: { x: 100, y: 200 } });
-  await expect(teacher.getByRole("img", { name: "Current position" })).toBeVisible({ timeout: 1500 });
+  // Page 1, line 2 is the first row of the letter grid; word 1 is its rightmost letter.
+  await student.getByRole("button", { name: /^Line 2, word 1\b/ }).click();
+  await expect(teacher.getByRole("button", { name: "Line 2, word 1, current position" })).toBeVisible({ timeout: 1500 });
 
-  await teacher.getByTestId("qaida-page").click({ position: { x: 150, y: 150 } });
+  await student.getByRole("button", { name: /^Line 2, word 2\b/ }).click();
+  await expect(teacher.getByRole("button", { name: "Line 2, word 2, current position" })).toBeVisible({ timeout: 1500 });
+  await expect(teacher.getByRole("button", { name: "Line 2, word 1", exact: true })).toBeVisible();
+
+  await teacher.getByRole("button", { name: /^Line 3, word 3\b/ }).click();
   await teacher.getByRole("dialog", { name: "Mark this word" }).getByRole("button", { name: /Pronounce/ }).click();
-  await expect(student.getByRole("img", { name: "Mark: Pronunciation" })).toBeVisible({ timeout: 1500 });
+  await expect(student.getByRole("button", { name: /^Line 3, word 3, marked Pronunciation/ })).toBeVisible({ timeout: 1500 });
+  await expect(student.getByRole("img", { name: "Mark: Pronunciation (#1)" })).toBeVisible();
 
   await student.getByRole("button", { name: "Next page" }).click();
   await expect(teacher.getByRole("img", { name: "Noorani Qaida page 2" })).toBeVisible({ timeout: 1500 });
@@ -140,11 +146,9 @@ test("full qaida lesson: numbered marks, select from list, end, save and open it
   await student.getByRole("button", { name: "Join session" }).click();
   await expect(student.getByRole("img", { name: "Noorani Qaida page 1" })).toBeVisible();
 
-  const area = teacher.getByTestId("qaida-page");
-  const box = (await area.boundingBox())!;
-  await area.click({ position: { x: box.width * 0.58, y: box.height * 0.41 } });
+  await teacher.getByRole("button", { name: /^Line 2, word 2\b/ }).click();
   await teacher.getByRole("dialog").getByRole("button", { name: /Tajweed/ }).click();
-  await area.click({ position: { x: box.width * 0.39, y: box.height * 0.41 } });
+  await teacher.getByRole("button", { name: /^Line 2, word 3\b/ }).click();
   await teacher.getByRole("dialog").getByRole("button", { name: /Good/ }).click();
   await expect(student.getByRole("img", { name: "Mark: Tajweed rule (#1)" })).toBeVisible();
   await expect(student.getByRole("img", { name: "Mark: Good (#2)" })).toBeVisible();
