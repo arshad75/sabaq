@@ -75,14 +75,7 @@ export function LiveSession({ code, role, book: urlBook = null, studentId = null
     if (role === "teacher") {
       return <TeacherEnded code={code} studentId={studentId} book={live.book} shared={live.shared} />;
     }
-    return (
-      <FullScreenMessage title="Session ended">
-        <p>Well done today! Your teacher has your marks.</p>
-        <ButtonLink href="/student" size="lg" className="w-full">
-          Back to home
-        </ButtonLink>
-      </FullScreenMessage>
-    );
+    return <StudentEnded shared={live.shared} />;
   }
 
   const peerName = role === "teacher" ? "Student" : "Teacher";
@@ -201,6 +194,36 @@ function SessionPage({
       onWordTap={onWord}
       className="mx-auto max-w-4xl"
     />
+  );
+}
+
+function StudentEnded({ shared }: { shared: SharedState }) {
+  const marks = Object.values(shared.marks);
+  const stars = marks.filter((m) => m.markType === "good").length;
+  const pages = shared.pages.length;
+  return (
+    <main id="main" className="grid min-h-dvh place-items-center bg-gradient-to-br from-tile-sun via-tile-mint to-tile-sky p-6">
+      <div role="status" className="w-full max-w-md rounded-3xl bg-surface p-8 text-center shadow-xl">
+        <div aria-hidden className="mb-4 flex justify-center gap-2">
+          {Array.from({ length: Math.min(Math.max(stars, 1), 5) }, (_, i) => (
+            <span key={i} className="animate-pop-in text-star" style={{ animationDelay: `${i * 120}ms` }}>
+              <Icon name="star" size={40} strokeWidth={2.5} />
+            </span>
+          ))}
+        </div>
+        <h1 className="text-3xl font-semibold">{stars > 0 ? "MashaAllah, well done!" : "Well done today!"}</h1>
+        <p className="mt-3 text-lg text-muted">
+          {stars > 0
+            ? `You earned ${stars} ${stars === 1 ? "star" : "stars"}`
+            : "You read with your teacher"}
+          {pages > 0 && ` on ${pages} ${pages === 1 ? "page" : "pages"}`}.
+        </p>
+        <p className="mt-1 text-muted">Your teacher has your marks. See you next lesson!</p>
+        <ButtonLink href={supabaseAuth ? "/join" : "/student"} size="lg" className="mt-6 w-full">
+          {supabaseAuth ? "Done" : "Back to home"}
+        </ButtonLink>
+      </div>
+    </main>
   );
 }
 

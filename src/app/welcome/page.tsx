@@ -6,6 +6,7 @@ import { AccountShell } from "@/components/shell/AccountShell";
 import { LessonRequestForm, StartLiveLesson } from "@/components/auth/AccountForms";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge, Card, CardHeader } from "@/components/ui/Card";
+import { Tile, TileGrid } from "@/components/ui/Friendly";
 import { LoadingBlock } from "@/components/ui/States";
 import { BOOK_LABEL } from "@/lib/books";
 import type { Book } from "@/lib/domain/types";
@@ -104,10 +105,35 @@ async function Content() {
 
   return (
     <AccountShell account={account}>
-      <h1 className="text-3xl font-semibold tracking-tight">Assalamu alaikum, {account.displayName}</h1>
-      <p className="mt-1 text-muted">
-        {account.role === "teacher" ? "Start a lesson whenever you’re ready." : "Welcome to Sabaq."}
-      </p>
+      <section className="rounded-3xl bg-gradient-to-br from-tile-mint via-tile-sky to-tile-lilac p-6 sm:p-8">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Assalamu alaikum, {account.displayName}</h1>
+        <p className="mt-2 text-muted">
+          {account.role === "teacher"
+            ? `${children.length} ${children.length === 1 ? "student" : "students"}. Start a lesson whenever you’re ready.`
+            : children.length
+              ? "Here’s how your family’s lessons are going."
+              : "Welcome to Sabaq. Let’s find your child a teacher."}
+        </p>
+      </section>
+
+      <div className="mt-6">
+        <TileGrid>
+          <Tile href="/join" icon="play" color="mint" title="Join a lesson" subtitle="Enter the teacher’s code" />
+          {account.role === "teacher" ? (
+            <Tile href="#quick" icon="target" color="peach" title="Quick lesson" subtitle="For a trial" />
+          ) : (
+            <Tile
+              href={children[0] ? `/children/${children[0].id}` : "#ask"}
+              icon="star"
+              color="sun"
+              title={children[0] ? "Stars & badges" : "Find a teacher"}
+              subtitle={children[0] ? children[0].nickname : "Ask for a lesson"}
+            />
+          )}
+          <Tile href="/account/export" download icon="download" color="lilac" title="My data" subtitle="Download a copy" />
+          <Tile href="/settings" icon="settings" color="sky" title="Display" subtitle="Theme and text size" />
+        </TileGrid>
+      </div>
 
       <div className="mt-8 grid gap-6">
         {account.role === "teacher" && (
@@ -147,7 +173,7 @@ async function Content() {
         )}
 
         {account.role === "teacher" && (
-          <Card>
+          <Card id="quick" className="scroll-mt-24">
             <CardHeader title="Quick lesson" description="For a trial with someone who isn’t linked yet. It won’t be saved." />
             <StartLiveLesson />
           </Card>
@@ -220,7 +246,7 @@ async function Content() {
         )}
 
         {account.role === "guardian" && !open && (
-          <Card>
+          <Card id="ask" className="scroll-mt-24">
             <CardHeader
               title="Ask for a first lesson"
               description="Tell us a little about your child, and we’ll arrange a lesson with a teacher."

@@ -57,7 +57,7 @@ test("ending the session shows the ended state on both sides", async ({ browser 
   await teacher.getByRole("button", { name: "End session" }).click();
   await teacher.getByRole("button", { name: "Yes, end" }).click();
   await expect(teacher.getByRole("heading", { name: "Session ended" })).toBeVisible();
-  await expect(student.getByRole("heading", { name: "Session ended" })).toBeVisible({ timeout: 1500 });
+  await expect(student.getByRole("heading", { name: "Well done today!" })).toBeVisible({ timeout: 1500 });
 
   await context.close();
 });
