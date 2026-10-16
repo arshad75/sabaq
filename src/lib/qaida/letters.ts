@@ -107,13 +107,17 @@ export function canSpeakLetters(): boolean {
 /** Says the letter's Arabic name. Returns false if this device can't make a sound for it. */
 export function speakLetter(letter: LetterName): boolean {
   if (typeof window === "undefined") return false;
-  if (RECORDED.has(letter.id)) return playClip(`/audio/letters/${letter.id}.mp3`, () => speakWithVoice(letter));
-  if (speakWithVoice(letter)) return true;
+  const clipFallback = () => playClip(`/audio/letters/espeak/${letter.id}.mp3`);
+  if (RECORDED.has(letter.id)) return playClip(`/audio/letters/${letter.id}.mp3`, () => speakWithVoice(letter, clipFallback));
+  if (speakWithVoice(letter, clipFallback)) return true;
   // No Arabic voice on this device: use the generated eSpeak NG clip (scripts/make-letter-audio.sh).
-  return playClip(`/audio/letters/espeak/${letter.id}.mp3`);
+  return clipFallback();
 }
 
 let clip: HTMLAudioElement | null = null;
+let watchdog: ReturnType<typeof setTimeout> | undefined;
+// How long speech may take to start before we assume this device's engine is silent.
+const SPEECH_START_MS = 800;
 
 function playClip(src: string, onFail?: () => void): boolean {
   if (typeof Audio === "undefined") return false;
@@ -124,11 +128,13 @@ function playClip(src: string, onFail?: () => void): boolean {
   return true;
 }
 
-function speakWithVoice(letter: LetterName): boolean {
+function speakWithVoice(letter: LetterName, onSilent: () => void): boolean {
   if (!canSpeakLetters()) return false;
   const synth = window.speechSynthesis;
   if (arabicVoice === undefined) arabicVoice = findArabicVoice();
   if (arabicVoice === null) return false;
+  clearTimeout(watchdog);
+  clip?.pause();
   // Chrome can get stuck paused; cancel() only when something is actually playing.
   if (synth.paused) synth.resume();
   if (synth.speaking || synth.pending) synth.cancel();
@@ -137,6 +143,19 @@ function speakWithVoice(letter: LetterName): boolean {
   if (arabicVoice) u.voice = arabicVoice;
   u.rate = 0.8;
   u.volume = 1;
+  let started = false;
+  u.onstart = () => {
+    started = true;
+  };
+  u.onerror = () => {
+    if (!started) onSilent();
+  };
+  // Some engines (embedded browsers, voices not yet downloaded) accept speech but never play it.
+  watchdog = setTimeout(() => {
+    if (started) return;
+    synth.cancel();
+    onSilent();
+  }, SPEECH_START_MS);
   synth.speak(u);
   return true;
 }

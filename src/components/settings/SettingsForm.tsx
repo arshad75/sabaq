@@ -10,6 +10,10 @@ import { MarkLegend } from "@/components/ui/Indicators";
 import { Button } from "@/components/ui/Button";
 import { logOut } from "@/lib/auth/actions";
 import { Skeleton } from "@/components/ui/States";
+import { letterFor, speakLetter, type LetterName } from "@/lib/qaida/letters";
+import { sayLabel } from "@/lib/audio/speak";
+
+const TEST_LETTER = letterFor(1, { id: "2:1" }) as LetterName;
 
 function ReadingPreview({ theme }: { theme: ReadingTheme }) {
   const page = usePage(1);
@@ -101,6 +105,15 @@ export function SettingsForm() {
             checked={prefs.buttonVoices}
             onChange={(v) => setPrefs({ buttonVoices: v })}
           />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="secondary" icon="volume" onClick={() => speakLetter(TEST_LETTER)}>
+              Test letter sound
+            </Button>
+            <Button variant="ghost" onClick={() => sayLabel("Next page")}>
+              Test button voice
+            </Button>
+            <span className="text-sm text-muted">You should hear “Alif” in Arabic, then “Next page”.</span>
+          </div>
         </div>
       </Card>
 

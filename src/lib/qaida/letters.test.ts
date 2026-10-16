@@ -34,4 +34,43 @@ describe("Qaida letter names", () => {
     expect(played).toEqual(["/audio/letters/espeak/ba.mp3"]);
     vi.unstubAllGlobals();
   });
+
+  it("falls back to the clip when the device's voice accepts speech but never starts", async () => {
+    vi.resetModules();
+    const fresh = await import("./letters");
+    vi.useFakeTimers();
+    const played: string[] = [];
+    vi.stubGlobal("window", globalThis);
+    vi.stubGlobal("speechSynthesis", {
+      getVoices: () => [{ lang: "ar-SA", name: "Arabic", localService: true }],
+      speak: () => {},
+      cancel: () => {},
+      resume: () => {},
+      paused: false,
+      speaking: false,
+      pending: false,
+    });
+    vi.stubGlobal("SpeechSynthesisUtterance", class {
+      onstart: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(public text: string) {}
+    });
+    vi.stubGlobal(
+      "Audio",
+      class {
+        constructor(public src: string) {}
+        play() {
+          played.push(this.src);
+          return Promise.resolve();
+        }
+        pause() {}
+      },
+    );
+    expect(fresh.speakLetter({ id: "dal", en: "Dal", ar: "x" })).toBe(true);
+    expect(played).toEqual([]);
+    vi.advanceTimersByTime(1000);
+    expect(played).toEqual(["/audio/letters/espeak/dal.mp3"]);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 });
