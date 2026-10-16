@@ -11,7 +11,7 @@ position syncs live to the teacher, the teacher marks mistakes, and the marks fe
 per-student progress record. Voice/video calling stays on an external app
 (WhatsApp/Meet) for now.
 
-Working name: `lesson-sync` (placeholder, rename freely).
+Name: **Sabaq** (سبق, "lesson"). Package and storage keys use `sabaq`.
 
 ## Users and roles
 

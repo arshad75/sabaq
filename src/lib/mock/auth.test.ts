@@ -13,13 +13,13 @@ import {
 
 describe("password login", () => {
   it("resolves the role from the account, not from the form", () => {
-    expect(verifyPassword("amina@example.com", "lesson-sync-demo")?.role).toBe("teacher");
-    expect(verifyPassword(" SARA@example.com ", "lesson-sync-demo")?.role).toBe("guardian");
+    expect(verifyPassword("amina@example.com", "sabaq-demo")?.role).toBe("teacher");
+    expect(verifyPassword(" SARA@example.com ", "sabaq-demo")?.role).toBe("guardian");
   });
 
   it("rejects a wrong password and an unknown email the same way", () => {
     expect(verifyPassword("amina@example.com", "nope")).toBeNull();
-    expect(verifyPassword("nobody@example.com", "lesson-sync-demo")).toBeNull();
+    expect(verifyPassword("nobody@example.com", "sabaq-demo")).toBeNull();
   });
 });
 

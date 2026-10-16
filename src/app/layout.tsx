@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Lesson Sync", template: "%s · Lesson Sync" },
+  title: { default: "Sabaq", template: "%s · Sabaq" },
   description: "Shared reading sessions for remote Quran lessons between a teacher and a child.",
-  applicationName: "Lesson Sync",
+  applicationName: "Sabaq",
 };
 
 export const viewport: Viewport = {

@@ -22,7 +22,7 @@ export const STALE_MS = 6000;
 export type PeerStatus = "waiting" | "connected" | "reconnecting" | "left";
 
 function storageKey(code: string, role: SessionRole) {
-  return `lesson-sync:session:${code}:${role}`;
+  return `sabaq:session:${code}:${role}`;
 }
 
 function loadSaved(code: string, role: SessionRole, urlBook: Book | null): SharedState {

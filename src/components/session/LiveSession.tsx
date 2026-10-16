@@ -253,7 +253,7 @@ function TeacherEnded({
               book,
               startedAt: shared.startedAt,
               pages: shared.pages,
-              note: sessionStorage.getItem(`lesson-sync:note:${code}`) ?? "",
+              note: sessionStorage.getItem(`sabaq:note:${code}`) ?? "",
               marks: Object.values(shared.marks),
             });
             if (result.ok) router.push(`/teacher/sessions/${result.id}`);
@@ -607,7 +607,7 @@ function MarksPanel({
   onClear: (id: string) => void;
   onClose: () => void;
 }) {
-  const noteKey = `lesson-sync:note:${code}`;
+  const noteKey = `sabaq:note:${code}`;
   const [note, setNote] = useState(() => sessionStorage.getItem(noteKey) ?? "");
   return (
     <div className="flex flex-1 flex-col p-4">

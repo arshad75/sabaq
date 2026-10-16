@@ -11,7 +11,7 @@ export interface SessionTransport {
  * `latencyMs` delays each send (one-way) to approximate a long-distance connection.
  */
 export function createLocalTransport(roomCode: string, opts: { latencyMs?: number } = {}): SessionTransport {
-  const channel = new BroadcastChannel(`lesson-sync:room:${roomCode}`);
+  const channel = new BroadcastChannel(`sabaq:room:${roomCode}`);
   const handlers = new Set<(e: SessionEvent) => void>();
   const latency = Math.max(0, opts.latencyMs ?? 0);
   const pending = new Map<ReturnType<typeof setTimeout>, SessionEvent>();

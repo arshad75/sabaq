@@ -11,7 +11,10 @@ export function Brand({ href = "/" }: { href?: string }) {
       <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-primary text-primary-fg">
         <Icon name="book" size={18} />
       </span>
-      Lesson Sync
+      {site.name}
+      <span lang="ar" dir="rtl" className="font-arabic text-lg font-normal text-muted">
+        {site.nameArabic}
+      </span>
     </Link>
   );
 }

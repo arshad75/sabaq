@@ -49,7 +49,7 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/guardian">, "searchP
     <div className="flex flex-wrap items-start gap-2">
       <AddChildForm />
       <LinkTeacherForm />
-      <ExportButton json={JSON.stringify(exportGuardianData(g), null, 2)} filename="lesson-sync-export.json" />
+      <ExportButton json={JSON.stringify(exportGuardianData(g), null, 2)} filename="sabaq-export.json" />
     </div>
   );
 

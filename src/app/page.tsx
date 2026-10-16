@@ -33,7 +33,7 @@ export default function Home() {
           Shared reading for remote Quran lessons
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted">
-          Lesson Sync puts the teacher and the child on the same page, live. Keep your usual WhatsApp or Meet call for
+          Sabaq puts the teacher and the child on the same page, live. Keep your usual WhatsApp or Meet call for
           voice; this app handles the reading.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">

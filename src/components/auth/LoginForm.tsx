@@ -73,7 +73,7 @@ export function LoginForm() {
       </p>
       {previewEnabled && (
         <p className="rounded-xl bg-surface-2 p-3 text-xs text-muted">
-          Demo accounts (password <code>lesson-sync-demo</code>): <code>amina@example.com</code> (teacher),{" "}
+          Demo accounts (password <code>sabaq-demo</code>): <code>amina@example.com</code> (teacher),{" "}
           <code>sara@example.com</code> (parent).
         </p>
       )}

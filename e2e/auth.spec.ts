@@ -7,7 +7,7 @@ async function parentLogIn(page: Page) {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Email" }).fill("sara@example.com");
   await page.getByText("Password", { exact: true }).click();
-  await page.getByRole("textbox", { name: "Password" }).fill("lesson-sync-demo");
+  await page.getByRole("textbox", { name: "Password" }).fill("sabaq-demo");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Assalamu alaikum, Sara" })).toBeVisible();
 }
@@ -25,7 +25,7 @@ test("teacher: wrong password shows a generic error, right password opens the te
   await expect(page.getByText("That email and password don’t match.")).toBeVisible();
   await expect(page.getByRole("radio", { name: "Password" })).toBeChecked();
 
-  await page.getByRole("textbox", { name: "Password" }).fill("lesson-sync-demo");
+  await page.getByRole("textbox", { name: "Password" }).fill("sabaq-demo");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/teacher$/);
   await expect(page.getByRole("heading", { name: "Assalamu alaikum, Ustadha Amina" })).toBeVisible();

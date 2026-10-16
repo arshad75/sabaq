@@ -130,7 +130,7 @@ test("full qaida lesson: numbered marks, select from list, end, save and open it
   await teacher.goto("/login");
   await teacher.getByRole("textbox", { name: "Email" }).fill("amina@example.com");
   await teacher.getByText("Password", { exact: true }).click();
-  await teacher.getByRole("textbox", { name: "Password" }).fill("lesson-sync-demo");
+  await teacher.getByRole("textbox", { name: "Password" }).fill("sabaq-demo");
   await teacher.getByRole("button", { name: "Log in" }).click();
   await expect(teacher).toHaveURL(/\/teacher$/);
   await teacher.getByLabel("Student").selectOption({ label: "Sumayya" });

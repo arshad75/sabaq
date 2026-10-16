@@ -2,6 +2,12 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Renamed to Sabaq
+
+- The app is now **Sabaq** (سبق, "lesson"), replacing the working name Lesson Sync.
+  The brand shows both forms; package name, storage keys (`sabaq:*`) and the demo
+  password (`sabaq-demo`) follow. Old `lesson-sync:*` browser data is simply ignored.
+
 ## 2026-10-16: Tappable words on Qaida pages (detected boxes, not retyped text)
 
 - **Why not retype the Qaida as text?** Later pages contain Quran verses (hard rule 1),
@@ -43,7 +49,7 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 - **Mock auth, real shape.** Until Supabase Auth (M3), `src/lib/mock/auth.ts` and
   `src/lib/auth/` run sign-in on the server with an httpOnly session cookie. Stores are
   in memory and reset when the dev server restarts. Demo logins: `amina@example.com`
-  (teacher) and `sara@example.com` (guardian), password `lesson-sync-demo`; every child's
+  (teacher) and `sara@example.com` (guardian), password `sabaq-demo`; every child's
   PIN starts as `1234`.
 - **Role comes from the account.** The old login form had no role field and always
   sent people to the guardian dashboard. Login now looks the role up server-side.

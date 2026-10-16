@@ -5,8 +5,8 @@ import * as db from "./data";
 
 /** Demo logins. Only accounts whose screens are wired to mock data are listed. */
 const ACCOUNTS: { email: string; profileId: string; passwordSha256: Buffer }[] = [
-  { email: "amina@example.com", profileId: "t1", passwordSha256: sha256("lesson-sync-demo") },
-  { email: "sara@example.com", profileId: "g1", passwordSha256: sha256("lesson-sync-demo") },
+  { email: "amina@example.com", profileId: "t1", passwordSha256: sha256("sabaq-demo") },
+  { email: "sara@example.com", profileId: "g1", passwordSha256: sha256("sabaq-demo") },
 ];
 
 /** Hashed PINs, mirroring students.pin_hash. Every demo child starts with PIN 1234. */
