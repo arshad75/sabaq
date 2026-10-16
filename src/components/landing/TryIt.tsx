@@ -63,6 +63,7 @@ export function TryIt() {
           position={childPos}
           pins={childPins}
           onPointTap={setChildPos}
+          speakLetters
           showCredit={false}
           className="rounded-2xl shadow-none ring-0"
         />

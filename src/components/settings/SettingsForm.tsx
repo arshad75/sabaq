@@ -87,6 +87,16 @@ export function SettingsForm() {
       </Card>
 
       <Card>
+        <CardHeader title="Sounds" description="Uses this device’s own Arabic voice; nothing is downloaded." />
+        <Switch
+          id="letter-sounds"
+          label="Say the letter when a child taps it in the Qaida"
+          checked={prefs.letterSounds}
+          onChange={(v) => setPrefs({ letterSounds: v })}
+        />
+      </Card>
+
+      <Card>
         <CardHeader title="Notifications" description="In-app reminders. Email is optional and off for now." />
         <Switch
           id="notify-assignments"

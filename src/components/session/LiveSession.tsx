@@ -115,6 +115,7 @@ export function LiveSession({ code, role, book: urlBook = null, studentId = null
         position={live.shared.position}
         marks={live.shared.marks}
         readingTheme={prefs.readingTheme}
+        speakLetters={prefs.letterSounds}
         banners={banners}
         connection={connectionDots}
         onPosition={live.setPosition}
@@ -148,6 +149,7 @@ function SessionPage({
   position,
   selected,
   readingTheme,
+  speakLetters = false,
   onWord,
   onPoint,
   onPin,
@@ -158,6 +160,7 @@ function SessionPage({
   position: StudentPosition | null;
   selected?: Target | null;
   readingTheme: ReadingTheme;
+  speakLetters?: boolean;
   onWord: (w: QuranWord) => void;
   onPoint: (p: PagePoint) => void;
   onPin?: (id: string) => void;
@@ -179,6 +182,7 @@ function SessionPage({
         onPointTap={onPoint}
         onPinTap={onPin}
         readingTheme={readingTheme}
+        speakLetters={speakLetters}
         className="mx-auto max-w-2xl"
       />
     );
@@ -341,6 +345,7 @@ function StudentView({
   position,
   marks,
   readingTheme,
+  speakLetters = false,
   banners,
   connection,
   onPosition,
@@ -351,6 +356,7 @@ function StudentView({
   position: StudentPosition | null;
   marks: Record<string, LiveMark>;
   readingTheme: ReadingTheme;
+  speakLetters?: boolean;
   banners: ReactNode;
   connection: ReactNode;
   onPosition: (page: number, anchor?: { word?: ReturnType<typeof wordRef>; point?: PagePoint }) => void;
@@ -378,6 +384,7 @@ function StudentView({
             marks={marks}
             position={position}
             readingTheme={readingTheme}
+            speakLetters={speakLetters}
             onWord={(w) => onPosition(page, { word: wordRef(w) })}
             onPoint={(p) => onPosition(page, { point: p })}
           />

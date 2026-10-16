@@ -130,6 +130,7 @@ async function Content() {
               subtitle={children[0] ? children[0].nickname : "Ask for a lesson"}
             />
           )}
+          <Tile href="/listen" icon="speech" color="rose" title="Listen" subtitle="Recitation, ayah by ayah" />
           <Tile href="/account/export" download icon="download" color="lilac" title="My data" subtitle="Download a copy" />
           <Tile href="/settings" icon="settings" color="sky" title="Display" subtitle="Theme and text size" />
         </TileGrid>

@@ -37,6 +37,7 @@ export function PracticeReader({ book, from, to }: { book: Book; from: number; t
               page={page}
               position={point}
               onPointTap={setPoint}
+              speakLetters={prefs.letterSounds}
               readingTheme={prefs.readingTheme}
               className="mx-auto max-w-2xl"
             />

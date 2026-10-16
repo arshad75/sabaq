@@ -9,6 +9,7 @@ export function AccountShell({ account, children }: { account: Account; children
   const nav: NavItem[] = [
     { href: "/welcome", label: "Home", icon: "home", exact: true },
     { href: "/join", label: "Join", icon: "play" },
+    { href: "/listen", label: "Listen", icon: "speech" },
     ...(account.isAdmin ? [{ href: "/admin", label: "Admin", icon: "shield" } as NavItem] : []),
     { href: "/account", label: "Account", icon: "user" },
   ];

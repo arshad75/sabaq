@@ -4,6 +4,8 @@ import { expect, test } from "@playwright/test";
 test.skip(process.env.NEXT_PUBLIC_SUPABASE_AUTH !== "1", "needs NEXT_PUBLIC_SUPABASE_AUTH=1 and Supabase");
 
 test("a parent signs up and asks for a lesson; the admin schedules it with a teacher", async ({ browser }, info) => {
+  // The whole journey across four devices; the dev server compiles pages on first use.
+  test.setTimeout(90_000);
   const email = `parent-${Date.now()}-${info.project.name}@example.com`;
   const child = `Ayaan-${info.project.name}-${Date.now().toString(36).slice(-5)}`;
   const parent = await (await browser.newContext()).newPage();
@@ -76,8 +78,38 @@ test("a parent signs up and asks for a lesson; the admin schedules it with a tea
   await expect(parent.getByRole("heading", { name: `${child} · Qaida` })).toBeVisible();
   await expect(parent.getByText(/· with Ustadha Amina/).filter({ visible: true })).toBeVisible();
   await expect(parent.getByRole("img", { name: "Mark: Tajweed rule (#1)" })).toBeVisible();
-  await parent.goto("/welcome");
 
+  // Teacher sets homework on the child's page; the parent sees it with badges and stars.
+  await teacher.goto("/welcome");
+  await teacher.getByRole("link", { name: child }).click();
+  await expect(teacher.getByRole("heading", { name: child, level: 1 })).toBeVisible();
+  await teacher.getByLabel("Qaida page from").fill("3");
+  await teacher.getByLabel("to page").fill("4");
+  await teacher.getByLabel("Note for the family (optional)").fill("Three times each line");
+  await teacher.getByRole("button", { name: "Set homework" }).click();
+  await expect(teacher.getByText("Homework set.")).toBeVisible({ timeout: 15_000 });
+
+  await parent.goto("/welcome");
+  await parent.getByRole("link", { name: "Progress & badges" }).click();
+  await expect(parent.getByRole("heading", { name: child, level: 1 })).toBeVisible();
+  await expect(parent.getByText(/New lesson: Qaida pages 3–4/)).toBeVisible();
+  await expect(parent.getByText("First lesson", { exact: true })).toBeVisible();
+  await expect(parent.getByRole("list", { name: "Rewards" })).toContainText("1 lesson");
+
+  // Privacy: the parent can download everything, then delete the child.
+  const exported = await parent.request.get("/account/export");
+  expect(exported.headers()["content-disposition"]).toContain("sabaq-export-");
+  const data = await exported.json();
+  expect(data.children.map((c: { nickname: string }) => c.nickname)).toContain(child);
+  expect(data.lessons).toHaveLength(1);
+
+  await parent.getByLabel(/Type delete to confirm/).fill("delete");
+  await expect(parent.getByRole("button", { name: `Delete ${child}’s data` })).toBeEnabled();
+  await parent.getByLabel(/Type delete to confirm/).press("Enter");
+  await expect(parent).toHaveURL(/\/welcome$/);
+  await expect(parent.getByRole("link", { name: "Progress & badges" })).toHaveCount(0);
+
+  await parent.goto("/account");
   await parent.getByRole("button", { name: "Log out" }).click();
   await expect(parent).toHaveURL(/\/login$/);
   await parent.getByRole("textbox", { name: "Email" }).fill(email);

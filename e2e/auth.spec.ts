@@ -1,5 +1,8 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
+// Prototype demo logins; accounts.spec.ts covers real accounts.
+test.skip(process.env.NEXT_PUBLIC_SUPABASE_AUTH === "1", "prototype logins only");
+
 // These tests share one server (and its in-memory auth state) across all viewports,
 // so they only use the default PIN for Maryam and never lock or reset anyone.
 

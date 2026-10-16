@@ -15,6 +15,7 @@ export type Prefs = {
   language: "en";
   notifyAssignments: boolean;
   notifySessionSummary: boolean;
+  letterSounds: boolean;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -24,6 +25,7 @@ export const DEFAULT_PREFS: Prefs = {
   language: "en",
   notifyAssignments: true,
   notifySessionSummary: true,
+  letterSounds: true,
 };
 
 const listeners = new Set<() => void>();

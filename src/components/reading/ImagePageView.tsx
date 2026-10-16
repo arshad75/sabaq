@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { MouseEvent } from "react";
+import { useState, type MouseEvent } from "react";
 import { cn } from "@/lib/cn";
 import { MARK_CONFIG } from "@/lib/marks";
 import { QAIDA, qaidaImageSrc } from "@/lib/books";
@@ -9,7 +9,8 @@ import type { MarkType } from "@/lib/domain/types";
 import type { PagePoint } from "@/lib/session/events";
 import type { ReadingTheme } from "@/lib/prefs";
 import { Icon } from "@/components/ui/Icon";
-import { cellAt, cellCenter, nearestCell, qaidaCells } from "@/lib/qaida/layout";
+import { cellAt, cellCenter, nearestCell, qaidaCells, type QaidaCell } from "@/lib/qaida/layout";
+import { letterFor, speakLetter, type LetterName } from "@/lib/qaida/letters";
 
 export type PagePin = { id: string; point: PagePoint; markType: MarkType; label?: string };
 
@@ -49,6 +50,7 @@ export function ImagePageView({
   onPinTap,
   readingTheme = "paper",
   showCredit = true,
+  speakLetters = false,
   className,
 }: {
   page: number;
@@ -63,9 +65,18 @@ export function ImagePageView({
   readingTheme?: ReadingTheme;
   /** Only turn off where the page already shows the Qaida credit (CC BY-SA). */
   showCredit?: boolean;
+  /** Say the letter's name when a child taps a letter box (alphabet pages). */
+  speakLetters?: boolean;
   className?: string;
 }) {
   const cells = qaidaCells(page);
+  const [spoken, setSpoken] = useState<{ cell: QaidaCell; letter: LetterName } | null>(null);
+  const sayLetter = (c: QaidaCell) => {
+    const letter = speakLetters ? letterFor(page, c) : undefined;
+    if (!letter) return setSpoken(null);
+    speakLetter(letter);
+    setSpoken({ cell: c, letter });
+  };
   const handleTap = (e: MouseEvent<HTMLDivElement>) => {
     // With detected word boxes, only the boxes are tappable; free taps are for pages without them.
     if (!onPointTap || cells.length > 0) return;
@@ -148,6 +159,7 @@ export function ImagePageView({
                 e.stopPropagation();
                 if (pin && onPinTap) onPinTap(pin.id);
                 else onPointTap(cellCenter(c));
+                sayLetter(c);
               }}
             />
           );
@@ -213,6 +225,17 @@ export function ImagePageView({
             </span>
           );
         })}
+        {spoken && (
+          <span
+            key={spoken.cell.id}
+            role="status"
+            className="animate-pop-in pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-full bg-fg px-3 py-1 text-sm font-semibold whitespace-nowrap text-bg shadow-lg"
+            style={at({ x: (spoken.cell.x0 + spoken.cell.x1) / 2, y: spoken.cell.y0 })}
+          >
+            <Icon name="speech" size={14} className="mr-1 inline" />
+            {spoken.letter.en}
+          </span>
+        )}
       </div>
       {showCredit && (
         <figcaption className="border-t border-border bg-surface px-3 py-1.5">

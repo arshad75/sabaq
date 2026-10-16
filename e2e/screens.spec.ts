@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+// Demo-data screens; real accounts send people away from them.
+test.skip(process.env.NEXT_PUBLIC_SUPABASE_AUTH === "1", "prototype screens only");
+
 const ROUTES = [
   "/",
   "/login",
