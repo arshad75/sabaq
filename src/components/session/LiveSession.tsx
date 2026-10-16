@@ -1,0 +1,484 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState, type ReactNode } from "react";
+import { MARK_CONFIG } from "@/lib/marks";
+import { MARK_TYPES, type MarkType } from "@/lib/domain/types";
+import type { QuranWord } from "@/lib/quran/types";
+import { wordKey } from "@/lib/quran/types";
+import { marksByWord, type LiveMark, type SessionRole } from "@/lib/session/events";
+import { useLiveSession, type PeerStatus } from "@/lib/session/use-live-session";
+import { usePrefs } from "@/lib/prefs";
+import { cn } from "@/lib/cn";
+import { Banner } from "@/components/ui/States";
+import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
+import { ConnectionDot, MarkChip, type ConnectionState } from "@/components/ui/Indicators";
+import { Icon } from "@/components/ui/Icon";
+import { TextArea } from "@/components/ui/Form";
+import { FullScreenMessage, JumpTo, PageNavBar, PageSurface, PageTurner, wordRef } from "./parts";
+
+export type ForcedSessionState = "waiting" | "reconnecting" | "ended" | null;
+
+type Props = {
+  code: string;
+  role: SessionRole;
+  startPage?: number;
+  latencyMs?: number;
+  forced?: ForcedSessionState;
+};
+
+function peerToConnection(s: PeerStatus): ConnectionState {
+  return s === "left" ? "waiting" : s;
+}
+
+export function LiveSession({ code, role, startPage = 1, latencyMs, forced }: Props) {
+  const live = useLiveSession({ code, role, latencyMs });
+  const prefs = usePrefs();
+  const peerStatus: PeerStatus = forced === "waiting" ? "waiting" : forced === "reconnecting" ? "reconnecting" : live.peerStatus;
+  const ended = forced === "ended" || live.shared.endedAt !== null;
+  const markMap = useMemo(() => marksByWord(live.shared.marks), [live.shared.marks]);
+  const studentPage = live.shared.position?.page ?? startPage;
+  const positionKey = live.shared.position?.word ? wordKey(live.shared.position.word) : null;
+
+  if (ended) {
+    return (
+      <FullScreenMessage title="Session ended">
+        <p>
+          {role === "teacher"
+            ? "The marks from this session will appear in the summary."
+            : "Well done today! Your teacher has your marks."}
+        </p>
+        <ButtonLink href={role === "teacher" ? "/teacher/sessions/s1-sess-12" : "/student"} size="lg" className="w-full">
+          {role === "teacher" ? "View session summary" : "Back to home"}
+        </ButtonLink>
+      </FullScreenMessage>
+    );
+  }
+
+  const peerName = role === "teacher" ? "Student" : "Teacher";
+  const banners = (
+    <div className="space-y-2 px-3 pt-2 empty:hidden">
+      {!live.online && (
+        <Banner tone="danger" icon="wifiOff">
+          You are offline. Keep reading; changes will sync when the connection returns.
+        </Banner>
+      )}
+      {live.online && peerStatus === "reconnecting" && (
+        <Banner tone="warning" icon="wifiOff">
+          {peerName}&apos;s connection dropped. Reconnecting… nothing is lost.
+        </Banner>
+      )}
+      {live.online && (peerStatus === "waiting" || peerStatus === "left") && (
+        <Banner tone="info" icon="clock" action={role === "teacher" ? <CopyLink code={code} /> : undefined}>
+          {peerStatus === "left" ? `${peerName} left the session. ` : `Waiting for ${peerName.toLowerCase()} to join. `}
+          Room code <strong className="font-mono tracking-widest">{code}</strong>
+        </Banner>
+      )}
+    </div>
+  );
+
+  const connectionDots = (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <ConnectionDot state={live.online ? "connected" : "offline"} who="You" />
+      <ConnectionDot state={peerToConnection(peerStatus)} who={peerName} />
+    </div>
+  );
+
+  if (role === "student") {
+    return (
+      <StudentView
+        page={studentPage}
+        positionKey={positionKey}
+        markMap={markMap}
+        readingTheme={prefs.readingTheme}
+        banners={banners}
+        connection={connectionDots}
+        onPosition={(page, word) => live.setPosition(page, word ? wordRef(word) : null)}
+        onEnd={live.endSession}
+      />
+    );
+  }
+
+  return (
+    <TeacherView
+      studentPage={studentPage}
+      positionKey={positionKey}
+      marks={live.shared.marks}
+      markMap={markMap}
+      readingTheme={prefs.readingTheme}
+      banners={banners}
+      connection={connectionDots}
+      code={code}
+      onMark={(word, type) => live.setMark(wordRef(word), type)}
+      onClear={live.clearMark}
+      onEnd={live.endSession}
+    />
+  );
+}
+
+function EndButton({ onEnd, large }: { onEnd: () => void; large?: boolean }) {
+  const [confirming, setConfirming] = useState(false);
+  if (!confirming) {
+    return (
+      <Button variant="secondary" size={large ? "lg" : "md"} onClick={() => setConfirming(true)}>
+        End session
+      </Button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2" role="group" aria-label="Confirm end session">
+      <Button variant="danger" onClick={onEnd}>
+        Yes, end
+      </Button>
+      <Button variant="ghost" onClick={() => setConfirming(false)}>
+        Cancel
+      </Button>
+    </div>
+  );
+}
+
+function CopyLink({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button
+      variant="secondary"
+      icon={copied ? "check" : "copy"}
+      onClick={async () => {
+        const url = `${window.location.origin}/session/${code}?role=student`;
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+        } catch {
+          window.prompt("Copy this link for the student", url);
+        }
+      }}
+    >
+      {copied ? "Copied" : "Copy student link"}
+    </Button>
+  );
+}
+
+// ---- Student ---------------------------------------------------------------------
+
+function StudentView({
+  page,
+  positionKey,
+  markMap,
+  readingTheme,
+  banners,
+  connection,
+  onPosition,
+  onEnd,
+}: {
+  page: number;
+  positionKey: string | null;
+  markMap: Map<string, LiveMark>;
+  readingTheme: ReturnType<typeof usePrefs>["readingTheme"];
+  banners: ReactNode;
+  connection: ReactNode;
+  onPosition: (page: number, word: QuranWord | null) => void;
+  onEnd: () => void;
+}) {
+  const go = (p: number) => onPosition(p, null);
+  return (
+    <div className="flex h-dvh flex-col bg-bg">
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-3 py-2">
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-semibold tabular-nums">Page {page}</span>
+          {connection}
+        </div>
+        <EndButton onEnd={onEnd} />
+      </header>
+      {banners}
+      <main id="main" className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-4">
+        <p className="mb-2 text-center text-sm text-muted">Tap the word you are reading.</p>
+        <PageTurner onNext={() => go(page + 1)} onPrev={() => go(Math.max(1, page - 1))}>
+          <PageSurface
+            pageNumber={page}
+            positionKey={positionKey}
+            marks={markMap}
+            readingTheme={readingTheme}
+            onWordTap={(w) => onPosition(page, w)}
+            className="mx-auto max-w-4xl"
+          />
+        </PageTurner>
+      </main>
+      <PageNavBar page={page} onChange={go} large />
+    </div>
+  );
+}
+
+// ---- Teacher ---------------------------------------------------------------------
+
+function TeacherView({
+  studentPage,
+  positionKey,
+  marks,
+  markMap,
+  readingTheme,
+  banners,
+  connection,
+  code,
+  onMark,
+  onClear,
+  onEnd,
+}: {
+  studentPage: number;
+  positionKey: string | null;
+  marks: Record<string, LiveMark>;
+  markMap: Map<string, LiveMark>;
+  readingTheme: ReturnType<typeof usePrefs>["readingTheme"];
+  banners: ReactNode;
+  connection: ReactNode;
+  code: string;
+  onMark: (word: QuranWord, type: MarkType) => void;
+  onClear: (id: string) => void;
+  onEnd: () => void;
+}) {
+  const [manualPage, setManualPage] = useState<number | null>(null);
+  const [selected, setSelected] = useState<QuranWord | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const follow = manualPage === null;
+  const viewPage = follow ? studentPage : manualPage;
+  const go = (p: number) => {
+    setSelected(null);
+    setManualPage(p);
+  };
+  const selectedMark = selected ? markMap.get(selected.key) : undefined;
+  const markList = Object.values(marks).sort((a, b) => b.at - a.at);
+
+  return (
+    <div className="flex h-dvh flex-col bg-bg">
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border bg-surface px-3 py-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="font-mono text-sm tracking-widest text-muted" aria-label={`Room code ${code}`}>
+            {code}
+          </span>
+          {connection}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-pressed={follow}
+            onClick={() => setManualPage(follow ? viewPage : null)}
+            className={cn(
+              "inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-medium",
+              follow ? "border-primary bg-primary-soft text-primary" : "border-border text-muted",
+            )}
+          >
+            <Icon name={follow ? "eye" : "target"} size={18} />
+            {follow ? "Following student" : "Follow student"}
+          </button>
+          <IconButton
+            icon="panel"
+            label={panelOpen ? "Hide marks panel" : "Show marks panel"}
+            aria-expanded={panelOpen}
+            onClick={() => setPanelOpen((o) => !o)}
+            className="lg:hidden"
+          />
+          <EndButton onEnd={onEnd} />
+        </div>
+      </header>
+      {banners}
+      {!follow && viewPage !== studentPage && (
+        <div className="px-3 pt-2">
+          <Banner
+            tone="info"
+            icon="eye"
+            action={
+              <Button variant="secondary" onClick={() => setManualPage(null)}>
+                Follow
+              </Button>
+            }
+          >
+            Student is on page {studentPage}.
+          </Banner>
+        </div>
+      )}
+      <div className="flex min-h-0 flex-1">
+        <main id="main" className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-4">
+          <PageTurner onNext={() => go(viewPage + 1)} onPrev={() => go(Math.max(1, viewPage - 1))}>
+            <PageSurface
+              pageNumber={viewPage}
+              positionKey={viewPage === studentPage ? positionKey : null}
+              selectedKey={selected?.key ?? null}
+              marks={markMap}
+              readingTheme={readingTheme}
+              onWordTap={(w) => setSelected((cur) => (cur?.key === w.key ? null : w))}
+              className="mx-auto max-w-4xl"
+            />
+          </PageTurner>
+        </main>
+        <aside
+          aria-label="Session marks"
+          className={cn(
+            "w-80 shrink-0 flex-col overflow-y-auto border-l border-border bg-surface",
+            panelOpen
+              ? "fixed inset-y-0 right-0 z-40 flex w-[min(20rem,90vw)] shadow-2xl lg:static lg:shadow-none"
+              : "hidden lg:flex",
+          )}
+        >
+          <MarksPanel
+            code={code}
+            marks={markList}
+            onJump={(p) => {
+              go(p);
+              setPanelOpen(false);
+            }}
+            onClear={onClear}
+            onClose={() => setPanelOpen(false)}
+          />
+        </aside>
+      </div>
+      {selected ? (
+        <MarkPalette
+          word={selected}
+          current={selectedMark}
+          onPick={(t) => {
+            onMark(selected, t);
+            setSelected(null);
+          }}
+          onRemove={() => {
+            if (selectedMark) onClear(selectedMark.id);
+            setSelected(null);
+          }}
+          onCancel={() => setSelected(null)}
+        />
+      ) : (
+        <PageNavBar page={viewPage} onChange={go} extra={<JumpTo onJump={go} />} />
+      )}
+    </div>
+  );
+}
+
+function MarkPalette({
+  word,
+  current,
+  onPick,
+  onRemove,
+  onCancel,
+}: {
+  word: QuranWord;
+  current?: LiveMark;
+  onPick: (t: MarkType) => void;
+  onRemove: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-label="Mark this word"
+      className="border-t border-border bg-surface px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,.08)]"
+    >
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm">
+          <span className="font-medium">Mark word</span>{" "}
+          <span className="text-muted">
+            p.{word.page} · ayah {word.ayah}, word {word.wordIndex}
+          </span>
+        </p>
+        <IconButton icon="x" label="Cancel" onClick={onCancel} />
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {MARK_TYPES.map((t) => {
+          const cfg = MARK_CONFIG[t];
+          const active = current?.markType === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onPick(t)}
+              aria-pressed={active}
+              className={cn(
+                "flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border-2 px-2 text-sm font-medium",
+                active ? "bg-surface-2" : "bg-surface hover:bg-surface-2",
+              )}
+              style={{ borderColor: cfg.colorVar }}
+            >
+              <span style={{ color: cfg.colorVar }}>
+                <Icon name={cfg.icon} size={24} />
+              </span>
+              {cfg.shortLabel}
+            </button>
+          );
+        })}
+        {current && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-danger/50 px-2 text-sm font-medium text-danger hover:bg-danger-soft"
+          >
+            <Icon name="trash" size={24} />
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MarksPanel({
+  code,
+  marks,
+  onJump,
+  onClear,
+  onClose,
+}: {
+  code: string;
+  marks: LiveMark[];
+  onJump: (page: number) => void;
+  onClear: (id: string) => void;
+  onClose: () => void;
+}) {
+  const noteKey = `lesson-sync:note:${code}`;
+  const [note, setNote] = useState(() => sessionStorage.getItem(noteKey) ?? "");
+  return (
+    <div className="flex flex-1 flex-col p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">
+          Marks <span className="text-muted tabular-nums">({marks.length})</span>
+        </h2>
+        <IconButton icon="x" label="Close panel" onClick={onClose} className="lg:hidden" />
+      </div>
+      {marks.length === 0 ? (
+        <p className="rounded-xl bg-surface-2 p-4 text-sm text-muted">
+          No marks yet. Tap a word on the page to mark it.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {marks.map((m) => (
+            <li key={m.id} className="flex items-center gap-2 rounded-xl border border-border p-2">
+              <div className="min-w-0 flex-1">
+                <MarkChip type={m.markType} />
+                <p className="mt-1 text-xs text-muted">
+                  Page {m.page} · ayah {m.ayah}, word {m.wordIndex}
+                </p>
+              </div>
+              <IconButton icon="eye" label={`Go to page ${m.page}`} onClick={() => onJump(m.page)} />
+              <IconButton icon="trash" label="Remove mark" onClick={() => onClear(m.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
+      <label htmlFor="session-note" className="mt-5 mb-1.5 block font-medium">
+        Quick note
+      </label>
+      <TextArea
+        id="session-note"
+        value={note}
+        maxLength={500}
+        placeholder="Only you and the guardian will see this"
+        onChange={(e) => {
+          setNote(e.target.value);
+          sessionStorage.setItem(noteKey, e.target.value);
+        }}
+      />
+      <p className="mt-auto pt-4 text-xs text-muted">
+        Need a call? Keep using WhatsApp or Meet alongside this screen.{" "}
+        <Link href="/privacy" className="underline">
+          What is stored
+        </Link>
+      </p>
+    </div>
+  );
+}
