@@ -8,6 +8,8 @@ export type PagePoint = { x: number; y: number };
 
 export type LiveMark = {
   id: string;
+  /** 1-based number shown on the pin and in the marks list; kept when the type changes. */
+  n: number;
   markType: MarkType;
   page: number;
   word: WordRef | null;
@@ -24,6 +26,9 @@ export type SharedState = {
   position: StudentPosition | null;
   marks: Record<string, LiveMark>;
   cleared: string[];
+  /** Every page the student was on or that got a mark, for the saved summary. */
+  pages: number[];
+  startedAt: number | null;
   endedAt: number | null;
 };
 
@@ -42,14 +47,23 @@ export const emptySharedState = (book: Book | null = null): SharedState => ({
   position: null,
   marks: {},
   cleared: [],
+  pages: [],
+  startedAt: null,
   endedAt: null,
 });
+
+function notePage(state: SharedState, page: number, at: number): SharedState {
+  const startedAt = state.startedAt === null ? at : Math.min(state.startedAt, at);
+  if (state.pages.includes(page) && startedAt === state.startedAt) return state;
+  const pages = state.pages.includes(page) ? state.pages : [...state.pages, page].sort((a, b) => a - b);
+  return { ...state, pages, startedAt };
+}
 
 function mergeMark(state: SharedState, mark: LiveMark): SharedState {
   if (state.cleared.includes(mark.id)) return state;
   const existing = state.marks[mark.id];
   if (existing && existing.at >= mark.at) return state;
-  return { ...state, marks: { ...state.marks, [mark.id]: mark } };
+  return notePage({ ...state, marks: { ...state.marks, [mark.id]: mark } }, mark.page, mark.at);
 }
 
 function clearMark(state: SharedState, markId: string): SharedState {
@@ -60,10 +74,14 @@ function clearMark(state: SharedState, markId: string): SharedState {
 }
 
 export function mergeShared(a: SharedState, b: SharedState): SharedState {
+  const aStart = a.startedAt ?? null;
+  const bStart = b.startedAt ?? null;
   let s: SharedState = {
     ...a,
     book: a.book ?? b.book,
     position: !a.position || (b.position && b.position.at > a.position.at) ? b.position : a.position,
+    pages: [...new Set([...(a.pages ?? []), ...(b.pages ?? [])])].sort((x, y) => x - y),
+    startedAt: aStart !== null && bStart !== null ? Math.min(aStart, bStart) : (aStart ?? bStart),
     endedAt: a.endedAt ?? b.endedAt,
   };
   for (const id of b.cleared) s = clearMark(s, id);
@@ -76,7 +94,7 @@ export function applyEvent(state: SharedState, event: SessionEvent): SharedState
   switch (event.type) {
     case "position":
       if (state.position && state.position.at >= event.position.at) return state;
-      return { ...state, position: event.position };
+      return notePage({ ...state, position: event.position }, event.position.page, event.position.at);
     case "mark":
       return mergeMark(state, event.mark);
     case "clear_mark":

@@ -56,9 +56,3 @@ export async function getPairedGuardian(): Promise<string | null> {
   const token = (await cookies()).get(TABLET_COOKIE)?.value;
   return token ? (tablets.get(token) ?? null) : null;
 }
-
-/** The signed-in child, or the prototype's default student when nobody has signed in. */
-export async function getSignedInStudentId(fallbackId: string): Promise<string> {
-  const user = await getSessionUser();
-  return user?.role === "student" ? user.id : fallbackId;
-}

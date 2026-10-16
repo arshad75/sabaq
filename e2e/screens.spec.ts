@@ -16,7 +16,8 @@ const ROUTES = [
   "/guardian/children/s1",
   "/guardian/children/s1/progress",
   "/student",
-  "/student/assignments/a1",
+  "/student?as=s1",
+  "/student/assignments/a1?as=s1",
   "/teacher/classes/c2",
   "/teacher/students/s6",
   "/teacher/sessions/s6-sess-7",
@@ -25,7 +26,15 @@ const ROUTES = [
   "/student/assignments/a9?as=s6",
 ];
 
-const STATE_ROUTES = ["/teacher", "/guardian", "/student", "/teacher/students/s1", "/guardian/children/s1/progress"];
+const STATE_ROUTES = ["/teacher", "/guardian", "/student?as=s1", "/teacher/students/s1", "/guardian/children/s1/progress"];
+
+test("student screens ask the child to sign in instead of showing another child", async ({ page }) => {
+  for (const route of ["/student", "/student/assignments/a1"]) {
+    await page.goto(route);
+    await expect(page.getByRole("heading", { name: "Who is reading?" })).toBeVisible();
+    await expect(page.getByText(/Assalamu alaikum/)).toHaveCount(0);
+  }
+});
 
 for (const route of ROUTES) {
   test(`renders ${route} without errors or sideways scrolling`, async ({ page }) => {
@@ -43,7 +52,7 @@ for (const route of ROUTES) {
 for (const route of STATE_ROUTES) {
   for (const state of ["loading", "empty", "error"] as const) {
     test(`${route} has a ${state} state`, async ({ page }) => {
-      await page.goto(`${route}?state=${state}`);
+      await page.goto(`${route}${route.includes("?") ? "&" : "?"}state=${state}`);
       if (state === "loading") await expect(page.getByRole("status").first()).toBeAttached();
       if (state === "error") await expect(page.getByRole("alert").first()).toBeVisible();
       if (state === "empty") await expect(page.locator("h1, h2").first()).toBeVisible();

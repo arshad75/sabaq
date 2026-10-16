@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { MARK_CONFIG } from "@/lib/marks";
 import { MARK_TYPES, type Book, type MarkType } from "@/lib/domain/types";
 import type { QuranWord } from "@/lib/quran/types";
 import { wordKey } from "@/lib/quran/types";
-import { marksByWord, type LiveMark, type PagePoint, type SessionRole, type StudentPosition } from "@/lib/session/events";
+import {
+  marksByWord,
+  type LiveMark,
+  type PagePoint,
+  type SessionRole,
+  type SharedState,
+  type StudentPosition,
+} from "@/lib/session/events";
+import { saveLiveLesson } from "@/lib/session/actions";
 import { useLiveSession, type PeerStatus } from "@/lib/session/use-live-session";
 import { usePrefs, type ReadingTheme } from "@/lib/prefs";
 import { BOOK_LABEL } from "@/lib/books";
@@ -25,6 +34,8 @@ type Props = {
   code: string;
   role: SessionRole;
   book?: Book | null;
+  /** Set when the teacher started the room from their dashboard; needed to save the lesson. */
+  studentId?: string | null;
   startPage?: number;
   latencyMs?: number;
   forced?: ForcedSessionState;
@@ -37,11 +48,19 @@ function peerToConnection(s: PeerStatus): ConnectionState {
   return s === "left" ? "waiting" : s;
 }
 
-export function markLocation(m: Pick<LiveMark, "page" | "word">): string {
-  return m.word ? `Page ${m.page} · ayah ${m.word.ayah}, word ${m.word.wordIndex}` : `Page ${m.page} · spot on page`;
+/** Rough place on an image page, so a list entry can be matched to its pin by eye. */
+function pointArea({ x, y }: PagePoint): string {
+  const row = y < 1 / 3 ? "top" : y < 2 / 3 ? "middle" : "bottom";
+  const col = x < 1 / 3 ? "left" : x < 2 / 3 ? "centre" : "right";
+  return row === "middle" && col === "centre" ? "centre" : `${row} ${col}`;
 }
 
-export function LiveSession({ code, role, book: urlBook = null, startPage = 1, latencyMs, forced }: Props) {
+export function markLocation(m: Pick<LiveMark, "page" | "word" | "point">): string {
+  if (m.word) return `Page ${m.page} · ayah ${m.word.ayah}, word ${m.word.wordIndex}`;
+  return `Page ${m.page} · ${m.point ? pointArea(m.point) : "spot on page"}`;
+}
+
+export function LiveSession({ code, role, book: urlBook = null, studentId = null, startPage = 1, latencyMs, forced }: Props) {
   const live = useLiveSession({ code, role, book: urlBook, latencyMs });
   const prefs = usePrefs();
   const peerStatus: PeerStatus = forced === "waiting" ? "waiting" : forced === "reconnecting" ? "reconnecting" : live.peerStatus;
@@ -49,15 +68,14 @@ export function LiveSession({ code, role, book: urlBook = null, startPage = 1, l
   const studentPage = live.shared.position?.page ?? startPage;
 
   if (ended) {
+    if (role === "teacher") {
+      return <TeacherEnded code={code} studentId={studentId} book={live.book} shared={live.shared} />;
+    }
     return (
       <FullScreenMessage title="Session ended">
-        <p>
-          {role === "teacher"
-            ? "The marks from this session will appear in the summary."
-            : "Well done today! Your teacher has your marks."}
-        </p>
-        <ButtonLink href={role === "teacher" ? "/teacher/sessions/s1-sess-12" : "/student"} size="lg" className="w-full">
-          {role === "teacher" ? "View session summary" : "Back to home"}
+        <p>Well done today! Your teacher has your marks.</p>
+        <ButtonLink href="/student" size="lg" className="w-full">
+          Back to home
         </ButtonLink>
       </FullScreenMessage>
     );
@@ -153,7 +171,7 @@ function SessionPage({
   if (book === "qaida") {
     const pins = Object.values(marks)
       .filter((m) => m.page === page && m.point)
-      .map((m) => ({ id: m.id, point: m.point!, markType: m.markType }));
+      .map((m) => ({ id: m.id, point: m.point!, markType: m.markType, label: m.n ? String(m.n) : undefined }));
     return (
       <ImagePageView
         page={page}
@@ -179,6 +197,70 @@ function SessionPage({
       onWordTap={onWord}
       className="mx-auto max-w-4xl"
     />
+  );
+}
+
+function TeacherEnded({
+  code,
+  studentId,
+  book,
+  shared,
+}: {
+  code: string;
+  studentId: string | null;
+  book: Book;
+  shared: SharedState;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const markCount = Object.keys(shared.marks).length;
+
+  if (!studentId) {
+    return (
+      <FullScreenMessage title="Session ended">
+        <p>
+          This room wasn’t started from your dashboard, so it isn’t linked to a student and can’t be saved. Start
+          lessons with “Start a session” to keep a summary.
+        </p>
+        <ButtonLink href="/teacher" size="lg" className="w-full">
+          Back to dashboard
+        </ButtonLink>
+      </FullScreenMessage>
+    );
+  }
+
+  return (
+    <FullScreenMessage title="Session ended">
+      <p>
+        {markCount} {markCount === 1 ? "mark" : "marks"} on {shared.pages.length}{" "}
+        {shared.pages.length === 1 ? "page" : "pages"}. Save the lesson to see its summary and update progress.
+      </p>
+      {error && <Banner tone="danger">{error}</Banner>}
+      <Button
+        size="lg"
+        className="w-full"
+        icon="check"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const result = await saveLiveLesson({
+              code,
+              studentId,
+              book,
+              startedAt: shared.startedAt,
+              pages: shared.pages,
+              note: sessionStorage.getItem(`lesson-sync:note:${code}`) ?? "",
+              marks: Object.values(shared.marks),
+            });
+            if (result.ok) router.push(`/teacher/sessions/${result.id}`);
+            else setError(result.message);
+          })
+        }
+      >
+        {pending ? "Saving…" : "Save and view summary"}
+      </Button>
+    </FullScreenMessage>
   );
 }
 
@@ -323,7 +405,7 @@ function TeacherView({
     : selected?.word
       ? markMap.get(selected.word.key)
       : undefined;
-  const markList = Object.values(marks).sort((a, b) => b.at - a.at);
+  const markList = Object.values(marks).sort((a, b) => (b.n ?? 0) - (a.n ?? 0));
 
   return (
     <div className="flex h-dvh flex-col bg-bg">
@@ -405,8 +487,14 @@ function TeacherView({
             code={code}
             book={book}
             marks={markList}
-            onJump={(p) => {
-              go(p);
+            selectedId={selectedMark?.id ?? null}
+            onSelect={(m) => {
+              setManualPage(m.page === studentPage ? null : m.page);
+              setSelected(
+                m.word
+                  ? { page: m.page, markId: m.id }
+                  : { page: m.page, markId: m.id, point: m.point ?? undefined },
+              );
               setPanelOpen(false);
             }}
             onClear={onClear}
@@ -417,9 +505,11 @@ function TeacherView({
       {selected ? (
         <MarkPalette
           label={
-            selected.word
-              ? `p.${selected.page} · ayah ${selected.word.ayah}, word ${selected.word.wordIndex}`
-              : `p.${selected.page} · ${selectedMark ? "existing mark" : "spot you tapped"}`
+            selectedMark
+              ? `#${selectedMark.n} · ${markLocation(selectedMark)}`
+              : selected.word
+                ? `p.${selected.page} · ayah ${selected.word.ayah}, word ${selected.word.wordIndex}`
+                : `p.${selected.page} · spot you tapped`
           }
           current={selectedMark}
           onPick={(t) => {
@@ -506,14 +596,16 @@ function MarksPanel({
   code,
   book,
   marks,
-  onJump,
+  selectedId,
+  onSelect,
   onClear,
   onClose,
 }: {
   code: string;
   book: Book;
   marks: LiveMark[];
-  onJump: (page: number) => void;
+  selectedId: string | null;
+  onSelect: (mark: LiveMark) => void;
   onClear: (id: string) => void;
   onClose: () => void;
 }) {
@@ -534,13 +626,31 @@ function MarksPanel({
       ) : (
         <ul className="space-y-2">
           {marks.map((m) => (
-            <li key={m.id} className="flex items-center gap-2 rounded-xl border border-border p-2">
-              <div className="min-w-0 flex-1">
-                <MarkChip type={m.markType} />
-                <p className="mt-1 text-xs text-muted">{markLocation(m)}</p>
-              </div>
-              <IconButton icon="eye" label={`Go to page ${m.page}`} onClick={() => onJump(m.page)} />
-              <IconButton icon="trash" label="Remove mark" onClick={() => onClear(m.id)} />
+            <li
+              key={m.id}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border p-2",
+                selectedId === m.id ? "border-focus bg-surface-2" : "border-border",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(m)}
+                aria-label={`Select mark #${m.n}: ${MARK_CONFIG[m.markType].label}, ${markLocation(m)}`}
+                className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg text-left hover:bg-surface-2"
+              >
+                <span
+                  aria-hidden
+                  className="grid size-7 shrink-0 place-items-center rounded-full bg-fg text-xs font-semibold text-bg"
+                >
+                  {m.n}
+                </span>
+                <span className="min-w-0">
+                  <MarkChip type={m.markType} />
+                  <span className="mt-1 block text-xs text-muted">{markLocation(m)}</span>
+                </span>
+              </button>
+              <IconButton icon="trash" label={`Remove mark #${m.n}`} onClick={() => onClear(m.id)} />
             </li>
           ))}
         </ul>

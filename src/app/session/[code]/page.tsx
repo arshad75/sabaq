@@ -75,7 +75,18 @@ async function SessionRoute({ params, searchParams }: PageProps<"/session/[code]
   const forced: ForcedSessionState =
     state === "waiting" || state === "reconnecting" || state === "ended" ? state : null;
 
+  const studentParam = one(sp.student);
+  const studentId = role === "teacher" && studentParam && /^s\d+$/.test(studentParam) ? studentParam : null;
+
   return (
-    <SessionClient code={code} role={role} book={book} startPage={startPage} latencyMs={latencyMs} forced={forced} />
+    <SessionClient
+      code={code}
+      role={role}
+      book={book}
+      studentId={studentId}
+      startPage={startPage}
+      latencyMs={latencyMs}
+      forced={forced}
+    />
   );
 }

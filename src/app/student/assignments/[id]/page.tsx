@@ -7,10 +7,11 @@ import { ButtonLink } from "@/components/ui/Button";
 import { ErrorState, LoadingBlock } from "@/components/ui/States";
 import { Icon } from "@/components/ui/Icon";
 import { PracticeReader } from "@/components/reading/PracticeReader";
-import { getActingStudent, getPreviewState } from "@/lib/preview";
-import { getSignedInStudentId } from "@/lib/auth/session";
+import { getPreviewState } from "@/lib/preview";
+import { getViewingStudent } from "@/lib/auth/viewer";
+import { StudentSignInPrompt } from "@/components/auth/StudentSignInPrompt";
 import { ASSIGNMENT_KIND_LABEL, ASSIGNMENT_STATUS, formatDate, pageRange, relativeDays } from "@/lib/format";
-import { CURRENT, getAssignmentForStudent, liveSessionForTeacher } from "@/lib/mock/repo";
+import { getAssignmentForStudent, liveSessionForTeacher } from "@/lib/mock/repo";
 import { MOCK_NOW } from "@/lib/mock/data";
 
 export const metadata: Metadata = { title: "Reading" };
@@ -27,10 +28,11 @@ async function AssignmentScreen({ params, searchParams }: PageProps<"/student/as
   const [{ id }, state, acting] = await Promise.all([
     params,
     getPreviewState(searchParams),
-    getActingStudent(searchParams, await getSignedInStudentId(CURRENT.studentId)),
+    getViewingStudent(searchParams),
   ]);
   if (state === "loading") return <LoadingBlock label="Loading" rows={2} />;
   if (state === "error") return <ErrorState title="Oops" description="We couldn’t open this reading. Try again soon." />;
+  if (!acting) return <StudentSignInPrompt />;
 
   const a = getAssignmentForStudent(acting.id, id);
   if (!a) notFound();

@@ -15,6 +15,7 @@ import type {
 import { BOOKS, MARK_TYPES } from "@/lib/domain/types";
 import { deriveProgress } from "@/lib/progress/derive";
 import * as db from "./data";
+import { allMarks, allSessions } from "./live-store";
 
 export const CURRENT = { teacherId: "t1", guardianId: "g1", studentId: "s1" } as const;
 
@@ -86,14 +87,14 @@ export function classForStudent(teacherId: string, studentId: string): ClassRoom
 }
 
 function latestSession(studentId: string, teacherId?: string): LessonSession | undefined {
-  return db.sessions
+  return allSessions()
     .filter((s) => s.studentId === studentId && (!teacherId || s.teacherId === teacherId))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
 }
 
 export function listSessionsForTeacher(teacherId: string): (LessonSession & { student: Student })[] {
   const ids = approvedStudentIdsForTeacher(teacherId);
-  return db.sessions
+  return allSessions()
     .filter((s) => s.teacherId === teacherId && ids.has(s.studentId))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .map((s) => ({ ...s, student: db.students.find((st) => st.id === s.studentId)! }));
@@ -120,7 +121,7 @@ export function studentsNeedingAttention(teacherId: string) {
 // ---- Shared (callers must already be authorised for the student) ----------------
 
 export function getSession(id: string): (LessonSession & { student: Student; teacher: Profile }) | undefined {
-  const s = db.sessions.find((x) => x.id === id);
+  const s = allSessions().find((x) => x.id === id);
   if (!s) return undefined;
   return { ...s, student: db.students.find((st) => st.id === s.studentId)!, teacher: getProfile(s.teacherId)! };
 }
@@ -136,7 +137,7 @@ export function getSessionForGuardian(guardianId: string, id: string) {
 }
 
 export function listSessionsForStudent(studentId: string, book?: Book): LessonSession[] {
-  return db.sessions
+  return allSessions()
     .filter((s) => s.studentId === studentId && s.endedAt && (!book || s.book === book))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 }
@@ -148,7 +149,7 @@ export function primaryBookForStudent(studentId: string): Book {
 }
 
 export function marksForSession(sessionId: string): Mark[] {
-  return db.marks.filter((m) => m.sessionId === sessionId);
+  return allMarks().filter((m) => m.sessionId === sessionId);
 }
 
 export function countMarksByType(marks: Pick<Mark, "markType">[]): Record<MarkType, number> {
@@ -270,7 +271,7 @@ export function studentStreak(studentId: string): number {
 }
 
 export function liveSessionForTeacher(teacherId: string) {
-  return db.sessions.find((s) => s.teacherId === teacherId && !s.endedAt);
+  return allSessions().find((s) => s.teacherId === teacherId && !s.endedAt);
 }
 
 export { MOCK_NOW, MOCK_TODAY } from "./data";

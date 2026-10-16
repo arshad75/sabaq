@@ -24,6 +24,7 @@ export function SessionClient(props: {
   code: string;
   role: SessionRole;
   book?: Book | null;
+  studentId?: string | null;
   startPage?: number;
   latencyMs?: number;
   forced?: ForcedSessionState;

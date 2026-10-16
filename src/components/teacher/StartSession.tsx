@@ -43,7 +43,7 @@ export function StartSession({ students }: { students: { id: string; nickname: s
           >
             {copied ? "Link copied" : "Copy student link"}
           </Button>
-          <Button icon="play" onClick={() => router.push(`/session/${code}?role=teacher&book=${book}`)}>
+          <Button icon="play" onClick={() => router.push(`/session/${code}?role=teacher&book=${book}&student=${studentId}`)}>
             Open live view
           </Button>
         </div>

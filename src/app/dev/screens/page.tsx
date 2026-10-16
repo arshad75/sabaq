@@ -61,8 +61,9 @@ const SCREENS: { group: string; items: { label: string; href: string; states?: s
   {
     group: "Student",
     items: [
-      { label: "Home", href: "/student", states: ["loading", "empty", "error"] },
-      { label: "Assignment", href: "/student/assignments/a1", states: ["loading", "error"] },
+      { label: "Home (not signed in)", href: "/student" },
+      { label: "Home", href: "/student?as=s1", states: ["loading", "empty", "error"] },
+      { label: "Assignment", href: "/student/assignments/a1?as=s1", states: ["loading", "error"] },
       { label: "Qaida learner home", href: "/student?as=s6" },
       { label: "Qaida assignment", href: "/student/assignments/a9?as=s6" },
     ],

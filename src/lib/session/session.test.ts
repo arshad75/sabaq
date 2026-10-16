@@ -26,6 +26,7 @@ describe("room codes", () => {
 const word = { page: 1, surah: 1, ayah: 2, wordIndex: 3 };
 const mark = (over: Partial<LiveMark> = {}): LiveMark => ({
   id: "m1",
+  n: 1,
   page: 1,
   word,
   point: null,
@@ -87,6 +88,18 @@ describe("session events", () => {
     const teacher = emptySharedState("qaida");
     const s = applyEvent(student, { type: "sync_request", from: "teacher", clientId: "t", state: teacher });
     expect(s.book).toBe("qaida");
+  });
+
+  it("tracks every page covered and the earliest activity, across rejoins", () => {
+    let s = applyEvent(emptySharedState(), { type: "position", from: "student", position: pos(3, 50) });
+    s = applyEvent(s, { type: "mark", from: "teacher", mark: mark({ page: 1, at: 40 }) });
+    s = applyEvent(s, { type: "position", from: "student", position: pos(3, 60) });
+    expect(s.pages).toEqual([1, 3]);
+    expect(s.startedAt).toBe(40);
+    const other = { ...emptySharedState(), pages: [2], startedAt: 30 };
+    const merged = mergeShared(s, other);
+    expect(merged.pages).toEqual([1, 2, 3]);
+    expect(merged.startedAt).toBe(30);
   });
 
   it("records the end of a session once", () => {

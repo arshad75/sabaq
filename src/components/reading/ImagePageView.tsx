@@ -10,7 +10,7 @@ import type { PagePoint } from "@/lib/session/events";
 import type { ReadingTheme } from "@/lib/prefs";
 import { Icon } from "@/components/ui/Icon";
 
-export type PagePin = { id: string; point: PagePoint; markType: MarkType };
+export type PagePin = { id: string; point: PagePoint; markType: MarkType; label?: string };
 
 // Page scans are black on white, so themes are applied as image filters.
 const THEME_FILTER: Record<ReadingTheme, string | undefined> = {
@@ -112,11 +112,25 @@ export function ImagePageView({
             selectedPinId === pin.id && "outline-3 outline-offset-2 outline-dashed outline-focus",
           );
           const style = { ...at(pin.point), borderColor: cfg.colorVar, color: cfg.colorVar };
+          const name = `Mark: ${cfg.label}${pin.label ? ` (#${pin.label})` : ""}`;
+          const content = (
+            <>
+              <Icon name={cfg.icon} size={18} strokeWidth={2.5} />
+              {pin.label && (
+                <span
+                  aria-hidden
+                  className="absolute -top-2 -right-2 grid min-w-5 place-items-center rounded-full bg-fg px-1 text-[11px] leading-5 font-semibold text-bg"
+                >
+                  {pin.label}
+                </span>
+              )}
+            </>
+          );
           return onPinTap ? (
             <button
               key={pin.id}
               type="button"
-              aria-label={`Mark: ${cfg.label}`}
+              aria-label={name}
               className={cls}
               style={style}
               onClick={(e) => {
@@ -124,11 +138,11 @@ export function ImagePageView({
                 onPinTap(pin.id);
               }}
             >
-              <Icon name={cfg.icon} size={18} strokeWidth={2.5} />
+              {content}
             </button>
           ) : (
-            <span key={pin.id} role="img" aria-label={`Mark: ${cfg.label}`} className={cls} style={style}>
-              <Icon name={cfg.icon} size={18} strokeWidth={2.5} />
+            <span key={pin.id} role="img" aria-label={name} className={cls} style={style}>
+              {content}
             </span>
           );
         })}

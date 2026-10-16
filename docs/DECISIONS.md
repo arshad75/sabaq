@@ -2,6 +2,24 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Findings from the two-tab live lesson test
+
+- **Numbered marks.** Each live mark gets a number (`n`), shown on its pin, in the marks
+  list and in the saved summary. It stays the same when the mark's type changes. Qaida
+  marks also show a rough location ("top left"). Tapping a list entry selects that pin.
+- **Student screens need a signed-in child.** With no student session they show a
+  "Who is reading?" sign-in prompt instead of falling back to a default child. The
+  dev-only `?as=<id>` preview still works.
+- **Saving live lessons.** Ending a lesson lets the teacher save it with a server action.
+  It checks the teacher's session and that the student is theirs (like RLS), validates
+  every field, and stores the lesson in memory alongside the sample data. Summaries
+  and progress then include it. Rooms must be started from the dashboard (`&student=`)
+  to be saveable. Shared state now also tracks `pages` covered and `startedAt`.
+- **Resync after a dropped connection.** When a peer reappears after a gap, both sides
+  swap state again, so a page turn made offline reaches the other side. Delayed sends
+  are flushed before the channel closes.
+- **Dev indicator off** (`devIndicators: false`): it covered the reading view's buttons.
+
 ## 2026-10-16: Prototype sign-in for teachers, guardians and students
 
 - **Mock auth, real shape.** Until Supabase Auth (M3), `src/lib/mock/auth.ts` and

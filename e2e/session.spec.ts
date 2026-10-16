@@ -118,6 +118,65 @@ test("after a dropped connection the teacher catches up with what the student di
   await context.close();
 });
 
+test("full qaida lesson: numbered marks, select from list, end, save and open its real summary", async ({ browser }) => {
+  const teacherCtx = await browser.newContext();
+  const teacher = await teacherCtx.newPage();
+  await teacher.goto("/login");
+  await teacher.getByRole("textbox", { name: "Email" }).fill("amina@example.com");
+  await teacher.getByText("Password", { exact: true }).click();
+  await teacher.getByRole("textbox", { name: "Password" }).fill("lesson-sync-demo");
+  await teacher.getByRole("button", { name: "Log in" }).click();
+  await expect(teacher).toHaveURL(/\/teacher$/);
+  await teacher.getByLabel("Student").selectOption({ label: "Sumayya" });
+  await teacher.getByRole("button", { name: "Start a session" }).click();
+  const code = (await teacher.locator("p.font-mono").filter({ visible: true }).first().innerText()).trim();
+  await teacher.getByRole("button", { name: "Open live view" }).click();
+  await expect(teacher.getByRole("img", { name: "Noorani Qaida page 1" })).toBeVisible();
+
+  // Same browser context so the local transport connects the two tabs.
+  const student = await teacherCtx.newPage();
+  await student.goto("/join");
+  await student.getByRole("textbox", { name: "Room code" }).fill(code);
+  await student.getByRole("button", { name: "Join session" }).click();
+  await expect(student.getByRole("img", { name: "Noorani Qaida page 1" })).toBeVisible();
+
+  const area = teacher.getByTestId("qaida-page");
+  const box = (await area.boundingBox())!;
+  await area.click({ position: { x: box.width * 0.58, y: box.height * 0.41 } });
+  await teacher.getByRole("dialog").getByRole("button", { name: /Tajweed/ }).click();
+  await area.click({ position: { x: box.width * 0.39, y: box.height * 0.41 } });
+  await teacher.getByRole("dialog").getByRole("button", { name: /Good/ }).click();
+  await expect(student.getByRole("img", { name: "Mark: Tajweed rule (#1)" })).toBeVisible();
+  await expect(student.getByRole("img", { name: "Mark: Good (#2)" })).toBeVisible();
+
+  // Selecting #1 from the list opens that exact mark; change it to Slip.
+  const showPanel = teacher.getByRole("button", { name: "Show marks panel" });
+  if (await showPanel.isVisible()) await showPanel.click();
+  await teacher.getByRole("button", { name: /^Select mark #1/ }).click();
+  await expect(teacher.getByRole("dialog")).toContainText("#1");
+  await teacher.getByRole("dialog").getByRole("button", { name: /Slip/ }).click();
+  await expect(student.getByRole("img", { name: "Mark: Memorisation slip (#1)" })).toBeVisible();
+  await expect(teacher.locator("aside h2")).toHaveText("Marks (2)");
+
+  await student.getByRole("button", { name: "Next page" }).click();
+  await teacher.getByRole("button", { name: "End session" }).click();
+  await teacher.getByRole("button", { name: "Yes, end" }).click();
+  await teacher.getByRole("button", { name: "Save and view summary" }).click();
+  await expect(teacher).toHaveURL(new RegExp(`/teacher/sessions/live-${code}-`));
+  await expect(teacher.getByRole("heading", { name: "Session with Sumayya" })).toBeVisible();
+  await expect(teacher.getByRole("link", { name: "#1 · p.1" })).toBeVisible();
+  await expect(teacher.getByRole("link", { name: "#2 · p.1" })).toBeVisible();
+  await expect(teacher.getByRole("img", { name: "Mark: Memorisation slip (#1)" })).toBeVisible();
+  await expect(teacher.getByRole("navigation", { name: "Pages in this session" })).toContainText("2");
+
+  await teacherCtx.close();
+});
+
+test("an unlinked room explains why it can't be saved", async ({ page }) => {
+  await page.goto(`/session/${generateRoomCode()}?role=teacher&state=ended`);
+  await expect(page.getByText(/isn’t linked to a student/)).toBeVisible();
+});
+
 test("join form rejects a malformed code", async ({ page }) => {
   await page.goto("/join");
   await page.getByLabel("Room code").fill("AB1");

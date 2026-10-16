@@ -43,6 +43,7 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
 
   const marks = state === "empty" ? [] : marksForSession(session.id);
   const counts = countMarksByType(marks);
+  const markNo = new Map(marks.map((m, i) => [m.id, i + 1]));
   const pages = session.pagesCovered;
   const requested = Number(sp.page);
   const viewPage = pages.includes(requested) ? requested : pages[0];
@@ -69,7 +70,13 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
         <Stat label="Duration" value={mins !== null ? `${mins} min` : "Live"} />
         <Stat
           label={session.book === "qaida" ? "Qaida pages" : "Pages"}
-          value={pages.length ? `${Math.min(...pages)}–${Math.max(...pages)}` : "—"}
+          value={
+            pages.length === 0
+              ? "—"
+              : Math.min(...pages) === Math.max(...pages)
+                ? String(pages[0])
+                : `${Math.min(...pages)}–${Math.max(...pages)}`
+          }
         />
         <Stat label="Marks" value={marks.filter((m) => m.markType !== "good").length} hint="to work on" />
         <Stat label="Good" value={counts.good} />
@@ -98,7 +105,7 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
                               href={`${base}page=${m.page}`}
                               className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-border px-3 text-sm hover:bg-surface-2"
                             >
-                              p.{m.page}
+                              #{markNo.get(m.id)} · p.{m.page}
                               {m.ayah !== null && ` · ${m.ayah}:${m.wordIndex}`}
                             </Link>
                           </li>
@@ -145,7 +152,12 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
                   page={viewPage}
                   pins={marks
                     .filter((m) => m.page === viewPage && m.x !== null && m.y !== null)
-                    .map((m) => ({ id: m.id, point: { x: m.x!, y: m.y! }, markType: m.markType }))}
+                    .map((m) => ({
+                      id: m.id,
+                      point: { x: m.x!, y: m.y! },
+                      markType: m.markType,
+                      label: String(markNo.get(m.id)),
+                    }))}
                   className="mx-auto max-w-xl"
                 />
               )}

@@ -165,11 +165,13 @@ export function useLiveSession({
       const w = anchor.word;
       const existing = w ? marksByWord(sharedRef.current.marks).get(`${w.surah}:${w.ayah}:${w.wordIndex}`) : undefined;
       const prev = markId ? sharedRef.current.marks[markId] : existing;
+      const nextN = Math.max(0, ...Object.values(sharedRef.current.marks).map((m) => m.n ?? 0)) + 1;
       emit({
         type: "mark",
         from: role,
         mark: {
           id: prev?.id ?? uid(),
+          n: prev?.n ?? nextN,
           page,
           word: w ?? prev?.word ?? null,
           point: anchor.point ?? prev?.point ?? null,

@@ -81,7 +81,7 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/teacher">, "searchPa
                   Room <span className="font-mono tracking-widest">{live.roomCode}</span>
                 </p>
               </div>
-              <ButtonLink href={`/session/${live.roomCode}?role=teacher&book=${live.book}`} icon="play">
+              <ButtonLink href={`/session/${live.roomCode}?role=teacher&book=${live.book}&student=${live.studentId}`} icon="play">
                 Rejoin
               </ButtonLink>
             </div>
