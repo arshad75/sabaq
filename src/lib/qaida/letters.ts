@@ -107,16 +107,22 @@ export function canSpeakLetters(): boolean {
 /** Says the letter's Arabic name. Returns false if this device can't make a sound for it. */
 export function speakLetter(letter: LetterName): boolean {
   if (typeof window === "undefined") return false;
-  if (RECORDED.has(letter.id)) {
-    clip?.pause();
-    clip = new Audio(`/audio/letters/${letter.id}.mp3`);
-    void clip.play().catch(() => speakWithVoice(letter));
-    return true;
-  }
-  return speakWithVoice(letter);
+  if (RECORDED.has(letter.id)) return playClip(`/audio/letters/${letter.id}.mp3`, () => speakWithVoice(letter));
+  if (speakWithVoice(letter)) return true;
+  // No Arabic voice on this device: use the generated eSpeak NG clip (scripts/make-letter-audio.sh).
+  return playClip(`/audio/letters/espeak/${letter.id}.mp3`);
 }
 
 let clip: HTMLAudioElement | null = null;
+
+function playClip(src: string, onFail?: () => void): boolean {
+  if (typeof Audio === "undefined") return false;
+  clip?.pause();
+  clip = new Audio(src);
+  // Some browsers return nothing from play() instead of a promise.
+  void Promise.resolve(clip.play()).catch(() => onFail?.());
+  return true;
+}
 
 function speakWithVoice(letter: LetterName): boolean {
   if (!canSpeakLetters()) return false;

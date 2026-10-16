@@ -1,6 +1,6 @@
 // Sabaq service worker: offline Qaida pages and a few public screens. Signed-in pages,
 // personal data and Supabase traffic are never cached.
-const VERSION = "sabaq-v1";
+const VERSION = "sabaq-v2";
 const PUBLIC_PAGES = ["/", "/practice", "/join", "/listen"];
 
 self.addEventListener("install", (event) => {
@@ -45,7 +45,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith("/qaida/") || url.pathname.startsWith("/_next/static/")) {
+  if (url.pathname.startsWith("/qaida/") || url.pathname.startsWith("/audio/") || url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirst(request));
     return;
   }

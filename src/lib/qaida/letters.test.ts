@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { letterFor, speakLetter } from "./letters";
 import { qaidaCells } from "./layout";
 
@@ -11,7 +11,27 @@ describe("Qaida letter names", () => {
     expect(letterFor(1, { id: "6:4" })?.en).toBe("Ghayn");
   });
 
-  it("stays silent, without throwing, where there is no browser", () => {
-    expect(speakLetter({ id: "alif", en: "Alif", ar: "x" })).toBe(false);
+  it("never throws, even where speech isn't available", () => {
+    expect(() => speakLetter({ id: "alif", en: "Alif", ar: "x" })).not.toThrow();
+  });
+
+  it("plays the bundled clip when the device has no Arabic voice", () => {
+    const played: string[] = [];
+    vi.stubGlobal("window", globalThis);
+    vi.stubGlobal("speechSynthesis", { getVoices: () => [{ lang: "en-GB", name: "English" }] });
+    vi.stubGlobal(
+      "Audio",
+      class {
+        constructor(public src: string) {}
+        play() {
+          played.push(this.src);
+          return Promise.resolve();
+        }
+        pause() {}
+      },
+    );
+    expect(speakLetter({ id: "ba", en: "Ba", ar: "x" })).toBe(true);
+    expect(played).toEqual(["/audio/letters/espeak/ba.mp3"]);
+    vi.unstubAllGlobals();
   });
 });
