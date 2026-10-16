@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { startTransition, useActionState, useState } from "react";
 import { logIn, type LoginState } from "@/lib/auth/actions";
+import { supabaseAuth } from "@/lib/auth/mode";
 import { previewEnabled } from "@/lib/preview";
 import { Button } from "@/components/ui/Button";
 import { Field, SegmentedControl, TextInput } from "@/components/ui/Form";
@@ -10,17 +11,18 @@ import { Banner } from "@/components/ui/States";
 
 type Method = "magic" | "password";
 
-export function LoginForm() {
+export function LoginForm({ notice }: { notice?: string }) {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(logIn, { status: "idle" });
-  const [method, setMethod] = useState<Method>("magic");
+  const [method, setMethod] = useState<Method>(supabaseAuth ? "password" : "magic");
 
   if (state.status === "sent") {
     return (
       <Banner tone="success" icon="check">
         <p className="font-medium">Check your email</p>
         <p className="text-sm">
-          If {state.email} has an account, a sign-in link is on its way. It expires in 15 minutes. (Prototype: no email
-          is sent.)
+          If {state.email} has an account, a sign-in link is on its way. It works once and expires in an hour. Check
+          your spam folder if it doesn’t arrive in a few minutes.
+          {!supabaseAuth && " (Prototype: no email is sent.)"}
         </p>
       </Banner>
     );
@@ -37,6 +39,7 @@ export function LoginForm() {
         startTransition(() => formAction(data));
       }}
     >
+      {notice && <Banner tone="warning">{notice}</Banner>}
       <Field id="email" label="Email">
         <TextInput id="email" name="email" type="email" autoComplete="email" defaultValue={state.email} required />
       </Field>
@@ -46,12 +49,22 @@ export function LoginForm() {
         value={method}
         onChange={setMethod}
         options={[
-          { value: "magic", label: "Email link" },
           { value: "password", label: "Password" },
+          { value: "magic", label: "Email link" },
         ]}
       />
       {method === "password" && (
-        <Field id="password" label="Password">
+        <Field
+          id="password"
+          label="Password"
+          hint={
+            supabaseAuth && (
+              <Link href="/reset" className="font-medium text-primary underline-offset-4 hover:underline">
+                Forgot your password?
+              </Link>
+            )
+          }
+        >
           <TextInput id="password" name="password" type="password" autoComplete="current-password" required />
         </Field>
       )}
@@ -66,12 +79,15 @@ export function LoginForm() {
         </Link>
       </p>
       <p className="text-center text-sm text-muted">
-        Student?{" "}
-        <Link href="/login/student" className="font-medium text-primary underline-offset-4 hover:underline">
-          Sign in on your tablet
+        {supabaseAuth ? "Child joining a lesson?" : "Student?"}{" "}
+        <Link
+          href={supabaseAuth ? "/join" : "/login/student"}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          {supabaseAuth ? "Enter the lesson code" : "Sign in on your tablet"}
         </Link>
       </p>
-      {previewEnabled && (
+      {previewEnabled && !supabaseAuth && (
         <p className="rounded-xl bg-surface-2 p-3 text-xs text-muted">
           Demo accounts (password <code>sabaq-demo</code>): <code>amina@example.com</code> (teacher),{" "}
           <code>sara@example.com</code> (parent).

@@ -1,16 +1,18 @@
 -- RLS tests (CLAUDE.md rule 4). Run with: pnpm db:test
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(39);
 
 -- ---- Fixtures (as postgres) -------------------------------------------------------
-insert into auth.users (id, email, aud, role, raw_user_meta_data) values
-  ('a0000000-0000-4000-8000-000000000001', 'ta@test.invalid', 'authenticated', 'authenticated', '{"role":"teacher","display_name":"Teacher A"}'),
-  ('a0000000-0000-4000-8000-000000000002', 'tb@test.invalid', 'authenticated', 'authenticated', '{"role":"teacher","display_name":"Teacher B"}'),
-  ('b0000000-0000-4000-8000-000000000001', 'ga@test.invalid', 'authenticated', 'authenticated', '{"role":"guardian","display_name":"Guardian A"}'),
-  ('b0000000-0000-4000-8000-000000000002', 'gb@test.invalid', 'authenticated', 'authenticated', '{"role":"guardian","display_name":"Guardian B"}'),
-  -- A child's tablet identity: no role, so no profile.
-  ('c0000000-0000-4000-8000-000000000001', 'kid@test.invalid', 'authenticated', 'authenticated', '{"role":"student"}');
+insert into auth.users (id, email, aud, role, raw_user_meta_data, raw_app_meta_data) values
+  ('a0000000-0000-4000-8000-000000000001', 'ta@test.invalid', 'authenticated', 'authenticated', '{"display_name":"Teacher A"}', '{"role":"teacher"}'),
+  ('a0000000-0000-4000-8000-000000000002', 'tb@test.invalid', 'authenticated', 'authenticated', '{"display_name":"Teacher B"}', '{"role":"teacher"}'),
+  ('b0000000-0000-4000-8000-000000000001', 'ga@test.invalid', 'authenticated', 'authenticated', '{"display_name":"Guardian A"}', '{}'),
+  ('b0000000-0000-4000-8000-000000000002', 'gb@test.invalid', 'authenticated', 'authenticated', '{"display_name":"Guardian B"}', '{}'),
+  -- A child's tablet identity: marked by the server, so no profile.
+  ('c0000000-0000-4000-8000-000000000001', 'kid@test.invalid', 'authenticated', 'authenticated', '{}', '{"role":"student"}'),
+  -- Someone trying to sign up as a teacher through the public API stays a parent.
+  ('c0000000-0000-4000-8000-000000000002', 'sneaky@test.invalid', 'authenticated', 'authenticated', '{"role":"teacher"}', '{}');
 
 insert into public.students (id, guardian_id, user_id, nickname) values
   ('d0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 'KidA1'),
@@ -47,6 +49,8 @@ select is((select role::text from public.profiles where id = 'a0000000-0000-4000
           'signup creates a teacher profile');
 select is((select count(*)::int from public.profiles where id = 'c0000000-0000-4000-8000-000000000001'), 0,
           'a child identity gets no profile');
+select is((select role::text from public.profiles where id = 'c0000000-0000-4000-8000-000000000002'), 'guardian',
+          'public sign-up cannot choose the teacher role');
 
 -- ---- Anonymous --------------------------------------------------------------------
 set local role anon;

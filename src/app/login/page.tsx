@@ -26,9 +26,10 @@ async function Content({ searchParams }: Pick<PageProps<"/login">, "searchParams
   const state = await getPreviewState(searchParams);
   if (state === "loading") return <LoadingBlock rows={1} />;
   if (state === "error") return <ErrorState description="Sign-in is unavailable right now. Please try again in a minute." />;
+  const expired = (await searchParams).link === "expired";
   return (
     <Card>
-      <LoginForm />
+      <LoginForm notice={expired ? "That link has expired or was already used. Log in, or ask for a new link." : undefined} />
     </Card>
   );
 }

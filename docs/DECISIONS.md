@@ -2,6 +2,21 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Real accounts, first-lesson requests and admin
+
+- `NEXT_PUBLIC_SUPABASE_AUTH=1` switches to Supabase Auth (`@supabase/ssr`, added for
+  cookie sessions). Without it the prototype's demo logins and mock screens run, as in
+  local dev and CI. `src/proxy.ts` refreshes sessions and sends real accounts away from
+  screens still on demo data (`/guardian`, `/teacher`, `/student`).
+- Anyone can sign up, always as a parent: the signup trigger reads the role from
+  server-only `app_metadata`, so the public API can't create teachers. Admins promote
+  teachers (`admin_set_role`). `profiles.is_admin` is set by hand in SQL.
+- Parents ask for a first lesson (`lesson_requests`); the admin schedules it with a
+  free-text time ("Sat 5pm Sydney") to avoid time-zone bugs, and assigns a teacher.
+- Email: Gmail SMTP via an app password, sign-in links and password reset through
+  `/auth/confirm` (token hash, works across devices). Email confirmation is off for the
+  pilot (`mailer_autoconfirm`), so sign-up needs no email.
+
 ## 2026-10-16: Pilot hosting (Vercel Hobby + Supabase Free, Singapore)
 
 - Pilot for ~6-7 students runs free: Vercel Hobby (`sin1`) + Supabase Free (Singapore,
