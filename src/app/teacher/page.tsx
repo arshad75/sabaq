@@ -18,6 +18,7 @@ import {
   listStudentsForTeacher,
   liveSessionForTeacher,
   marksForSession,
+  primaryBookForStudent,
   studentsNeedingAttention,
 } from "@/lib/mock/repo";
 import { MOCK_TODAY } from "@/lib/mock/data";
@@ -80,7 +81,7 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/teacher">, "searchPa
                   Room <span className="font-mono tracking-widest">{live.roomCode}</span>
                 </p>
               </div>
-              <ButtonLink href={`/session/${live.roomCode}?role=teacher`} icon="play">
+              <ButtonLink href={`/session/${live.roomCode}?role=teacher&book=${live.book}`} icon="play">
                 Rejoin
               </ButtonLink>
             </div>
@@ -115,7 +116,9 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/teacher">, "searchPa
       <div className="space-y-6">
         <Card>
           <CardHeader title="Start a session" description="Creates a room code to share." />
-          <StartSession students={students.map((s) => ({ id: s.id, nickname: s.nickname }))} />
+          <StartSession
+            students={students.map((s) => ({ id: s.id, nickname: s.nickname, book: primaryBookForStudent(s.id) }))}
+          />
         </Card>
 
         <Card>

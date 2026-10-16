@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { STATUS_CONFIG } from "@/lib/marks";
-import { PAGE_STATUSES, type PageProgress, type PageStatus } from "@/lib/domain/types";
+import { PAGE_STATUSES, type Book, type PageProgress, type PageStatus } from "@/lib/domain/types";
 import { StatusBadge, StatusLegend, statusStyle } from "@/components/ui/Indicators";
 import { Button } from "@/components/ui/Button";
 import { Field, Select, TextInput } from "@/components/ui/Form";
@@ -94,7 +94,15 @@ function OverrideDot() {
 }
 
 /** Teacher-only: inspect a page and override its status. Changes are local in the prototype. */
-export function ProgressExplorer({ pageCount, progress: initial }: { pageCount: number; progress: PageProgress[] }) {
+export function ProgressExplorer({
+  book,
+  pageCount,
+  progress: initial,
+}: {
+  book: Book;
+  pageCount: number;
+  progress: PageProgress[];
+}) {
   const [progress, setProgress] = useState(initial);
   const [selected, setSelected] = useState<number | null>(null);
   const [pageInput, setPageInput] = useState("");
@@ -126,7 +134,7 @@ export function ProgressExplorer({ pageCount, progress: initial }: { pageCount: 
           if (!Number.isInteger(page) || page < 1 || page > pageCount) return;
           setProgress((list) => [
             ...list.filter((p) => p.page !== page),
-            { studentId: "", page, status, source: "teacher_override", updatedAt: new Date().toISOString() },
+            { studentId: "", book, page, status, source: "teacher_override", updatedAt: new Date().toISOString() },
           ]);
           setSelected(page);
           setSaved(`Page ${page} set to ${STATUS_CONFIG[status].label}.`);

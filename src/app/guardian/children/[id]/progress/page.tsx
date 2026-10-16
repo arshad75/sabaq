@@ -9,8 +9,15 @@ import { PageGrid } from "@/components/progress/PageGrid";
 import { ProgressStats, plainSummary } from "@/components/progress/ProgressStats";
 import { TrendChart } from "@/components/progress/TrendChart";
 import { getPreviewState } from "@/lib/preview";
-import { getSource } from "@/lib/quran";
-import { CURRENT, getChild, getProgressForStudent, listSessionsForStudent, weeklyTrend } from "@/lib/mock/repo";
+import { BOOK_LABEL, bookPageCount } from "@/lib/books";
+import {
+  CURRENT,
+  getChild,
+  getProgressForStudent,
+  listSessionsForStudent,
+  primaryBookForStudent,
+  weeklyTrend,
+} from "@/lib/mock/repo";
 import { MOCK_NOW } from "@/lib/mock/data";
 
 export const metadata: Metadata = { title: "Progress" };
@@ -30,10 +37,11 @@ async function ProgressScreen({ params, searchParams }: PageProps<"/guardian/chi
 
   const child = getChild(CURRENT.guardianId, id);
   if (!child) notFound();
-  const pageCount = getSource().pageCount;
-  const progress = state === "empty" ? [] : [...getProgressForStudent(child.id).values()];
+  const book = primaryBookForStudent(child.id);
+  const pageCount = bookPageCount(book);
+  const progress = state === "empty" ? [] : [...getProgressForStudent(child.id, book).values()];
   const monthAgo = new Date(new Date(MOCK_NOW).getTime() - 30 * 86_400_000).toISOString();
-  const recent = listSessionsForStudent(child.id).filter((s) => s.startedAt >= monthAgo).length;
+  const recent = listSessionsForStudent(child.id, book).filter((s) => s.startedAt >= monthAgo).length;
 
   return (
     <>
@@ -47,7 +55,7 @@ async function ProgressScreen({ params, searchParams }: PageProps<"/guardian/chi
           </Link>
         }
         title={`${child.nickname}’s progress`}
-        description="The same view the teacher sees, read-only."
+        description={`${BOOK_LABEL[book]} · the same view the teacher sees, read-only.`}
       />
       {progress.length === 0 ? (
         <EmptyState
@@ -63,12 +71,12 @@ async function ProgressScreen({ params, searchParams }: PageProps<"/guardian/chi
           </Card>
           <ProgressStats progress={progress} pageCount={pageCount} />
           <Card>
-            <CardHeader title="Pages" description="Each square is one page." />
+            <CardHeader title={`${BOOK_LABEL[book]} pages`} description="Each square is one page." />
             <PageGrid pageCount={pageCount} progress={progress} label={`${child.nickname}’s page progress`} />
           </Card>
           <Card>
             <CardHeader title="Trend" description="Average marks per lesson, last 6 weeks" />
-            <TrendChart buckets={weeklyTrend(child.id)} />
+            <TrendChart buckets={weeklyTrend(child.id, book)} />
           </Card>
         </div>
       )}

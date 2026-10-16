@@ -2,6 +2,24 @@
 
 Non-obvious choices, newest first. Change the stack only with an entry here.
 
+## 2026-10-16: Qaida lessons use the licensed Noorani Qaida page images
+
+- **Source.** Qamar Apps' Noorani Qaida (Indian edition), CC BY-SA 4.0 (see
+  `DATA_LICENSES.md`). Pages are the original embedded images, extracted by
+  `scripts/extract-qaida.py`, so a "Business Use Only" stamp added when the local copy
+  was re-printed to PDF is not carried over.
+- **Books.** A `Book` (`quran` | `qaida`) now sits on classes (default book), sessions,
+  marks, page progress and assignments. The "Weekend Qaida" class uses `qaida`; a new
+  mock learner, Sumayya (`s6`), is in it.
+- **Marking images.** Qaida pages are images with no word data, so the student taps
+  where she is reading and the teacher taps a spot to mark. Positions and marks carry a
+  `point` (x, y as fractions of the page) instead of a word. Word marks are unchanged.
+  Per-line or per-cell hit areas could come later from layout data.
+- **Book in live sync.** The teacher's link sets the book; the student's link may omit
+  it. `sync_request` now carries the sender's state, so whichever side joins second, both
+  end up with the teacher's book.
+- **Dev-only `?as=s6`** previews the student screens as the Qaida learner.
+
 ## 2026-10-16: Screens before data (prototype phase)
 
 - **Order change.** All screens in `pages.md` were built first as a clickable prototype

@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense, useState, type ReactNode } from "react";
-import { getSource, getSurahStartPage, clampPage } from "@/lib/quran";
+import { Suspense, useRef, useState, type ReactNode } from "react";
+import { getSource, getSurahStartPage } from "@/lib/quran";
+import { bookPageCount, clampBookPage } from "@/lib/books";
+import type { Book } from "@/lib/domain/types";
 import { usePage } from "@/lib/quran/use-page";
 import type { QuranWord } from "@/lib/quran/types";
 import { ReadingView, type ReadingViewProps } from "@/components/reading/ReadingView";
@@ -44,18 +46,28 @@ export function PageTurner({
   children: ReactNode;
 }) {
   const [startX, setStartX] = useState<number | null>(null);
+  const swiped = useRef(false);
   return (
     <div
       className="touch-pan-y"
       onPointerDown={(e) => {
+        swiped.current = false;
         if (e.pointerType !== "mouse") setStartX(e.clientX);
       }}
       onPointerUp={(e) => {
         if (startX === null) return;
         const dx = e.clientX - startX;
         setStartX(null);
+        if (Math.abs(dx) > 70) swiped.current = true;
         if (dx > 70) onNext();
         else if (dx < -70) onPrev();
+      }}
+      onClickCapture={(e) => {
+        // A swipe ends with a click; don't let it also mark a word or spot.
+        if (swiped.current) {
+          e.stopPropagation();
+          swiped.current = false;
+        }
       }}
       onPointerCancel={() => setStartX(null)}
       onKeyDown={(e) => {
@@ -70,17 +82,20 @@ export function PageTurner({
 }
 
 export function PageNavBar({
+  book = "quran",
   page,
   onChange,
   large = false,
   extra,
 }: {
+  book?: Book;
   page: number;
   onChange: (page: number) => void;
   large?: boolean;
   extra?: ReactNode;
 }) {
-  const count = getSource().pageCount;
+  const count = bookPageCount(book);
+  const clampPage = (p: number) => clampBookPage(book, p);
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border bg-surface px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {/* RTL reading: "next" sits on the left like a printed mushaf. */}
@@ -92,7 +107,9 @@ export function PageNavBar({
         onClick={() => onChange(clampPage(page + 1))}
         disabled={page >= count}
       >
-        Next<span className="hidden sm:inline">&nbsp;page</span>
+        <span>
+          Next<span className="hidden sm:inline">&nbsp;page</span>
+        </span>
       </Button>
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium whitespace-nowrap tabular-nums" aria-live="polite">
@@ -108,19 +125,28 @@ export function PageNavBar({
         onClick={() => onChange(clampPage(page - 1))}
         disabled={page <= 1}
       >
-        Prev<span className="hidden sm:inline">ious</span>
+        <span>
+          Prev<span className="hidden sm:inline">ious</span>
+        </span>
       </Button>
     </div>
   );
 }
 
-export function JumpTo({ onJump }: { onJump: (page: number) => void }) {
+export function JumpTo({ book = "quran", onJump }: { book?: Book; onJump: (page: number) => void }) {
   const [open, setOpen] = useState(false);
   const [pageInput, setPageInput] = useState("");
   const source = getSource();
+  const count = bookPageCount(book);
   return (
     <div className="relative">
-      <IconButton icon="target" label="Jump to page or surah" variant="ghost" onClick={() => setOpen((o) => !o)} aria-expanded={open} />
+      <IconButton
+        icon="target"
+        label={book === "quran" ? "Jump to page or surah" : "Jump to page"}
+        variant="ghost"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      />
       {open && (
         <div className="absolute bottom-full left-1/2 z-40 mb-2 w-72 -translate-x-1/2 space-y-3 rounded-2xl border border-border bg-surface p-4 shadow-lg">
           <form
@@ -129,7 +155,7 @@ export function JumpTo({ onJump }: { onJump: (page: number) => void }) {
               e.preventDefault();
               const n = Number(pageInput);
               if (Number.isFinite(n) && n >= 1) {
-                onJump(clampPage(n));
+                onJump(clampBookPage(book, n));
                 setOpen(false);
               }
             }}
@@ -141,32 +167,34 @@ export function JumpTo({ onJump }: { onJump: (page: number) => void }) {
                 pattern="[0-9]*"
                 value={pageInput}
                 onChange={(e) => setPageInput(e.target.value)}
-                placeholder={`1–${source.pageCount}`}
+                placeholder={`1–${count}`}
               />
             </label>
             <Button type="submit">Go</Button>
           </form>
-          <label className="block text-sm font-medium">
-            Surah
-            <Select
-              defaultValue=""
-              onChange={async (e) => {
-                const s = Number(e.target.value);
-                if (!s) return;
-                onJump(await getSurahStartPage(s));
-                setOpen(false);
-              }}
-            >
-              <option value="" disabled>
-                Choose a surah
-              </option>
-              {Array.from({ length: source.surahCount }, (_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  Surah {i + 1}
+          {book === "quran" && (
+            <label className="block text-sm font-medium">
+              Surah
+              <Select
+                defaultValue=""
+                onChange={async (e) => {
+                  const s = Number(e.target.value);
+                  if (!s) return;
+                  onJump(await getSurahStartPage(s));
+                  setOpen(false);
+                }}
+              >
+                <option value="" disabled>
+                  Choose a surah
                 </option>
-              ))}
-            </Select>
-          </label>
+                {Array.from({ length: source.surahCount }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    Surah {i + 1}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          )}
         </div>
       )}
     </div>

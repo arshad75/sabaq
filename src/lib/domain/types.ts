@@ -2,6 +2,10 @@
 
 export type Role = "guardian" | "teacher" | "student";
 
+/** Quran pages are rendered from text; Qaida pages are licensed page images. */
+export const BOOKS = ["quran", "qaida"] as const;
+export type Book = (typeof BOOKS)[number];
+
 export type Profile = {
   id: string;
   role: Exclude<Role, "student">;
@@ -23,6 +27,8 @@ export type ClassRoom = {
   id: string;
   teacherId: string;
   name: string;
+  /** Default book for sessions in this class. */
+  book: Book;
 };
 
 export type MembershipStatus = "invited" | "approved" | "revoked";
@@ -42,6 +48,7 @@ export type LessonSession = {
   teacherId: string;
   studentId: string;
   roomCode: string;
+  book: Book;
   startedAt: string;
   endedAt: string | null;
   teacherNote: string;
@@ -57,10 +64,15 @@ export type Mark = {
   sessionId: string;
   studentId: string;
   markType: MarkType;
-  surah: number;
-  ayah: number;
-  wordIndex: number;
+  book: Book;
   page: number;
+  /** Word anchor, used for Quran pages. */
+  surah: number | null;
+  ayah: number | null;
+  wordIndex: number | null;
+  /** Point anchor (0..1 of page width/height), used for image pages like the Qaida. */
+  x: number | null;
+  y: number | null;
   note: string | null;
   createdBy: string;
 };
@@ -70,6 +82,7 @@ export type PageStatus = (typeof PAGE_STATUSES)[number];
 
 export type PageProgress = {
   studentId: string;
+  book: Book;
   page: number;
   status: PageStatus;
   source: "derived" | "teacher_override";
@@ -84,6 +97,7 @@ export type Assignment = {
   studentId: string;
   teacherId: string;
   kind: AssignmentKind;
+  book: Book;
   fromPage: number;
   toPage: number;
   dueOn: string;

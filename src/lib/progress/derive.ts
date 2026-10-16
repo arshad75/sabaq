@@ -1,4 +1,4 @@
-import type { Mark, MarkType, PageProgress, PageStatus } from "@/lib/domain/types";
+import type { Book, Mark, MarkType, PageProgress, PageStatus } from "@/lib/domain/types";
 
 const ERROR_TYPES: ReadonlySet<MarkType> = new Set(["repeat", "pronunciation", "tajweed", "slip"]);
 export const NEEDS_WORK_THRESHOLD = 3;
@@ -18,6 +18,7 @@ export type SessionPages = {
  */
 export function deriveProgress(
   studentId: string,
+  book: Book,
   sessions: SessionPages[],
   overrides: PageProgress[] = [],
 ): Map<number, PageProgress> {
@@ -38,12 +39,12 @@ export function deriveProgress(
       else if (!seenBefore) status = "in_progress";
       else if (errors === 0) status = "solid";
       else status = "in_progress";
-      result.set(page, { studentId, page, status, source: "derived", updatedAt: s.startedAt });
+      result.set(page, { studentId, book, page, status, source: "derived", updatedAt: s.startedAt });
     }
   }
 
   for (const o of overrides) {
-    result.set(o.page, { ...o, source: "teacher_override" });
+    if (o.book === book) result.set(o.page, { ...o, source: "teacher_override" });
   }
   return result;
 }

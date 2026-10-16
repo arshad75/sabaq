@@ -7,10 +7,12 @@ import { ErrorState, LoadingBlock } from "@/components/ui/States";
 import { Icon } from "@/components/ui/Icon";
 import { MarkChip } from "@/components/ui/Indicators";
 import { StaticPageView } from "@/components/reading/StaticPageView";
+import { ImagePageView } from "@/components/reading/ImagePageView";
 import { AssignForm, TeacherNoteForm } from "@/components/teacher/forms";
 import { getPreviewState } from "@/lib/preview";
-import { getPage, getSource, wordKey } from "@/lib/quran";
-import { durationMinutes, formatDateLong, formatTime, pageRange } from "@/lib/format";
+import { getPage, getSource } from "@/lib/quran";
+import { BOOK_LABEL } from "@/lib/books";
+import { durationMinutes, formatDateLong, formatTime } from "@/lib/format";
 import { MARK_CONFIG } from "@/lib/marks";
 import { MARK_TYPES } from "@/lib/domain/types";
 import { CURRENT, countMarksByType, getSessionForGuardian, getSessionForTeacher, marksForSession } from "@/lib/mock/repo";
@@ -44,7 +46,7 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
   const pages = session.pagesCovered;
   const requested = Number(sp.page);
   const viewPage = pages.includes(requested) ? requested : pages[0];
-  const pageData = viewPage ? await getPage(viewPage) : null;
+  const pageData = viewPage && session.book === "quran" ? await getPage(viewPage) : null;
   const mins = durationMinutes(session.startedAt, session.endedAt);
   const base = `/teacher/sessions/${session.id}${asGuardian ? "?view=guardian&" : "?"}`;
 
@@ -60,12 +62,15 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
           </Link>
         }
         title={`Session with ${session.student.nickname}`}
-        description={`${formatDateLong(session.startedAt)} · ${formatTime(session.startedAt)} UTC · ${session.teacher.displayName}`}
+        description={`${BOOK_LABEL[session.book]} · ${formatDateLong(session.startedAt)} · ${formatTime(session.startedAt)} UTC · ${session.teacher.displayName}`}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Duration" value={mins !== null ? `${mins} min` : "Live"} />
-        <Stat label="Pages" value={pages.length ? pageRange(Math.min(...pages), Math.max(...pages)).replace("Pages ", "") : "—"} />
+        <Stat
+          label={session.book === "qaida" ? "Qaida pages" : "Pages"}
+          value={pages.length ? `${Math.min(...pages)}–${Math.max(...pages)}` : "—"}
+        />
         <Stat label="Marks" value={marks.filter((m) => m.markType !== "good").length} hint="to work on" />
         <Stat label="Good" value={counts.good} />
       </div>
@@ -93,7 +98,8 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
                               href={`${base}page=${m.page}`}
                               className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-border px-3 text-sm hover:bg-surface-2"
                             >
-                              p.{m.page} · {m.ayah}:{m.wordIndex}
+                              p.{m.page}
+                              {m.ayah !== null && ` · ${m.ayah}:${m.wordIndex}`}
                             </Link>
                           </li>
                         ))}
@@ -104,10 +110,10 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
             )}
           </Card>
 
-          {pageData && (
+          {viewPage && (
             <Card>
               <CardHeader
-                title={`Page ${viewPage}`}
+                title={`${session.book === "qaida" ? "Qaida page" : "Page"} ${viewPage}`}
                 action={
                   <nav aria-label="Pages in this session" className="flex flex-wrap gap-1">
                     {pages.map((p) => (
@@ -126,11 +132,23 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
                   </nav>
                 }
               />
-              <StaticPageView
-                page={pageData}
-                isPlaceholder={getSource().info.isPlaceholder}
-                marks={marks.filter((m) => m.page === viewPage).map((m) => ({ key: wordKey(m), markType: m.markType }))}
-              />
+              {pageData ? (
+                <StaticPageView
+                  page={pageData}
+                  isPlaceholder={getSource().info.isPlaceholder}
+                  marks={marks
+                    .filter((m) => m.page === viewPage && m.surah !== null)
+                    .map((m) => ({ key: `${m.surah}:${m.ayah}:${m.wordIndex}`, markType: m.markType }))}
+                />
+              ) : (
+                <ImagePageView
+                  page={viewPage}
+                  pins={marks
+                    .filter((m) => m.page === viewPage && m.x !== null && m.y !== null)
+                    .map((m) => ({ id: m.id, point: { x: m.x!, y: m.y! }, markType: m.markType }))}
+                  className="mx-auto max-w-xl"
+                />
+              )}
             </Card>
           )}
         </div>
@@ -148,6 +166,7 @@ async function Summary({ params, searchParams }: PageProps<"/teacher/sessions/[i
             <Card>
               <CardHeader title="Assign follow-up" />
               <AssignForm
+                book={session.book}
                 defaultFrom={pages[0] ?? 1}
                 defaultTo={pages[pages.length - 1] ?? 1}
                 defaultDue={new Date(new Date(MOCK_NOW).getTime() + 2 * 86_400_000).toISOString().slice(0, 10)}

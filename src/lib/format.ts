@@ -1,4 +1,4 @@
-import type { AssignmentKind, AssignmentStatus } from "@/lib/domain/types";
+import type { AssignmentKind, AssignmentStatus, Book } from "@/lib/domain/types";
 
 // Mock screens format in UTC so server output is deterministic; real data will use the viewer's zone.
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -31,8 +31,9 @@ export function relativeDays(iso: string, nowIso: string): string {
   return `${days} days ago`;
 }
 
-export function pageRange(from: number, to: number): string {
-  return from === to ? `Page ${from}` : `Pages ${from}–${to}`;
+export function pageRange(from: number, to: number, book: Book = "quran"): string {
+  const prefix = book === "qaida" ? "Qaida p" : "P";
+  return from === to ? `${prefix}age ${from}` : `${prefix}ages ${from}–${to}`;
 }
 
 export const ASSIGNMENT_KIND_LABEL: Record<AssignmentKind, string> = {

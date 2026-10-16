@@ -17,6 +17,12 @@ const ROUTES = [
   "/guardian/children/s1/progress",
   "/student",
   "/student/assignments/a1",
+  "/teacher/classes/c2",
+  "/teacher/students/s6",
+  "/teacher/sessions/s6-sess-7",
+  "/guardian/children/s6/progress",
+  "/student?as=s6",
+  "/student/assignments/a9?as=s6",
 ];
 
 const STATE_ROUTES = ["/teacher", "/guardian", "/student", "/teacher/students/s1", "/guardian/children/s1/progress"];

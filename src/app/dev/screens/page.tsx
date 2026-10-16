@@ -25,6 +25,8 @@ const SCREENS: { group: string; items: { label: string; href: string; states?: s
       { label: "Student", href: "/session/K7M2QX?role=student" },
       { label: "Teacher", href: "/session/K7M2QX?role=teacher" },
       { label: "Teacher, 300 ms latency", href: "/session/K7M2QX?role=teacher&latency=300" },
+      { label: "Qaida: teacher", href: "/session/QDAB23?role=teacher&book=qaida" },
+      { label: "Qaida: student", href: "/session/QDAB23?role=student&book=qaida" },
       {
         label: "Student states",
         href: "/session/K7M2QX?role=student",
@@ -40,6 +42,9 @@ const SCREENS: { group: string; items: { label: string; href: string; states?: s
       { label: "Student progress", href: "/teacher/students/s1", states: ["loading", "empty", "error"] },
       { label: "Other teacher’s student (404)", href: "/teacher/students/s4" },
       { label: "Session summary", href: "/teacher/sessions/s1-sess-12", states: ["loading", "empty", "error"] },
+      { label: "Qaida class", href: "/teacher/classes/c2" },
+      { label: "Qaida student progress", href: "/teacher/students/s6" },
+      { label: "Qaida session summary", href: "/teacher/sessions/s6-sess-7" },
     ],
   },
   {
@@ -48,6 +53,7 @@ const SCREENS: { group: string; items: { label: string; href: string; states?: s
       { label: "Dashboard", href: "/guardian", states: ["loading", "empty", "error"] },
       { label: "Child profile", href: "/guardian/children/s1", states: ["loading", "empty", "error"] },
       { label: "Child progress", href: "/guardian/children/s1/progress", states: ["loading", "empty", "error"] },
+      { label: "Qaida child progress", href: "/guardian/children/s6/progress" },
       { label: "Session summary (guardian view)", href: "/teacher/sessions/s1-sess-12?view=guardian" },
     ],
   },
@@ -56,6 +62,8 @@ const SCREENS: { group: string; items: { label: string; href: string; states?: s
     items: [
       { label: "Home", href: "/student", states: ["loading", "empty", "error"] },
       { label: "Assignment", href: "/student/assignments/a1", states: ["loading", "error"] },
+      { label: "Qaida learner home", href: "/student?as=s6" },
+      { label: "Qaida assignment", href: "/student/assignments/a9?as=s6" },
     ],
   },
   { group: "Shared", items: [{ label: "Settings", href: "/settings" }] },

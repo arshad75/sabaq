@@ -11,7 +11,7 @@ import {
 // These mirror the RLS rules the Supabase tests must prove in M3.
 describe("mock access scoping", () => {
   it("only lists a teacher's approved students", () => {
-    expect(listStudentsForTeacher("t1").map((s) => s.id).sort()).toEqual(["s1", "s2", "s3"]);
+    expect(listStudentsForTeacher("t1").map((s) => s.id).sort()).toEqual(["s1", "s2", "s3", "s6"]);
     expect(listStudentsForTeacher("t2").map((s) => s.id)).toEqual(["s4"]);
   });
 

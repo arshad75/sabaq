@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { MARK_CONFIG } from "@/lib/marks";
-import { MARK_TYPES, type MarkType } from "@/lib/domain/types";
+import { MARK_TYPES, type Book, type MarkType } from "@/lib/domain/types";
 import type { QuranWord } from "@/lib/quran/types";
 import { wordKey } from "@/lib/quran/types";
-import { marksByWord, type LiveMark, type SessionRole } from "@/lib/session/events";
+import { marksByWord, type LiveMark, type PagePoint, type SessionRole, type StudentPosition } from "@/lib/session/events";
 import { useLiveSession, type PeerStatus } from "@/lib/session/use-live-session";
-import { usePrefs } from "@/lib/prefs";
+import { usePrefs, type ReadingTheme } from "@/lib/prefs";
+import { BOOK_LABEL } from "@/lib/books";
 import { cn } from "@/lib/cn";
 import { Banner } from "@/components/ui/States";
 import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
 import { ConnectionDot, MarkChip, type ConnectionState } from "@/components/ui/Indicators";
 import { Icon } from "@/components/ui/Icon";
 import { TextArea } from "@/components/ui/Form";
+import { ImagePageView } from "@/components/reading/ImagePageView";
 import { FullScreenMessage, JumpTo, PageNavBar, PageSurface, PageTurner, wordRef } from "./parts";
 
 export type ForcedSessionState = "waiting" | "reconnecting" | "ended" | null;
@@ -22,23 +24,29 @@ export type ForcedSessionState = "waiting" | "reconnecting" | "ended" | null;
 type Props = {
   code: string;
   role: SessionRole;
+  book?: Book | null;
   startPage?: number;
   latencyMs?: number;
   forced?: ForcedSessionState;
 };
 
+/** What the teacher is about to mark: a word (Quran) or a spot on a page image (Qaida). */
+type Target = { page: number; word?: QuranWord; point?: PagePoint; markId?: string };
+
 function peerToConnection(s: PeerStatus): ConnectionState {
   return s === "left" ? "waiting" : s;
 }
 
-export function LiveSession({ code, role, startPage = 1, latencyMs, forced }: Props) {
-  const live = useLiveSession({ code, role, latencyMs });
+export function markLocation(m: Pick<LiveMark, "page" | "word">): string {
+  return m.word ? `Page ${m.page} · ayah ${m.word.ayah}, word ${m.word.wordIndex}` : `Page ${m.page} · spot on page`;
+}
+
+export function LiveSession({ code, role, book: urlBook = null, startPage = 1, latencyMs, forced }: Props) {
+  const live = useLiveSession({ code, role, book: urlBook, latencyMs });
   const prefs = usePrefs();
   const peerStatus: PeerStatus = forced === "waiting" ? "waiting" : forced === "reconnecting" ? "reconnecting" : live.peerStatus;
   const ended = forced === "ended" || live.shared.endedAt !== null;
-  const markMap = useMemo(() => marksByWord(live.shared.marks), [live.shared.marks]);
   const studentPage = live.shared.position?.page ?? startPage;
-  const positionKey = live.shared.position?.word ? wordKey(live.shared.position.word) : null;
 
   if (ended) {
     return (
@@ -69,7 +77,7 @@ export function LiveSession({ code, role, startPage = 1, latencyMs, forced }: Pr
         </Banner>
       )}
       {live.online && (peerStatus === "waiting" || peerStatus === "left") && (
-        <Banner tone="info" icon="clock" action={role === "teacher" ? <CopyLink code={code} /> : undefined}>
+        <Banner tone="info" icon="clock" action={role === "teacher" ? <CopyLink code={code} book={live.book} /> : undefined}>
           {peerStatus === "left" ? `${peerName} left the session. ` : `Waiting for ${peerName.toLowerCase()} to join. `}
           Room code <strong className="font-mono tracking-widest">{code}</strong>
         </Banner>
@@ -87,13 +95,14 @@ export function LiveSession({ code, role, startPage = 1, latencyMs, forced }: Pr
   if (role === "student") {
     return (
       <StudentView
+        book={live.book}
         page={studentPage}
-        positionKey={positionKey}
-        markMap={markMap}
+        position={live.shared.position}
+        marks={live.shared.marks}
         readingTheme={prefs.readingTheme}
         banners={banners}
         connection={connectionDots}
-        onPosition={(page, word) => live.setPosition(page, word ? wordRef(word) : null)}
+        onPosition={live.setPosition}
         onEnd={live.endSession}
       />
     );
@@ -101,17 +110,74 @@ export function LiveSession({ code, role, startPage = 1, latencyMs, forced }: Pr
 
   return (
     <TeacherView
+      book={live.book}
       studentPage={studentPage}
-      positionKey={positionKey}
+      position={live.shared.position}
       marks={live.shared.marks}
-      markMap={markMap}
       readingTheme={prefs.readingTheme}
       banners={banners}
       connection={connectionDots}
       code={code}
-      onMark={(word, type) => live.setMark(wordRef(word), type)}
+      onMark={(t, type) => live.setMark(t.page, { word: t.word && wordRef(t.word), point: t.point }, type, t.markId)}
       onClear={live.clearMark}
       onEnd={live.endSession}
+    />
+  );
+}
+
+/** One page of either book, with the student's position, marks and the teacher's selection. */
+function SessionPage({
+  book,
+  page,
+  marks,
+  position,
+  selected,
+  readingTheme,
+  onWord,
+  onPoint,
+  onPin,
+}: {
+  book: Book;
+  page: number;
+  marks: Record<string, LiveMark>;
+  position: StudentPosition | null;
+  selected?: Target | null;
+  readingTheme: ReadingTheme;
+  onWord: (w: QuranWord) => void;
+  onPoint: (p: PagePoint) => void;
+  onPin?: (id: string) => void;
+}) {
+  const markMap = useMemo(() => marksByWord(marks), [marks]);
+  const here = position?.page === page ? position : null;
+
+  if (book === "qaida") {
+    const pins = Object.values(marks)
+      .filter((m) => m.page === page && m.point)
+      .map((m) => ({ id: m.id, point: m.point!, markType: m.markType }));
+    return (
+      <ImagePageView
+        page={page}
+        pins={pins}
+        position={here?.point ?? null}
+        selected={selected && !selected.markId ? (selected.point ?? null) : null}
+        selectedPinId={selected?.markId ?? null}
+        onPointTap={onPoint}
+        onPinTap={onPin}
+        readingTheme={readingTheme}
+        className="mx-auto max-w-2xl"
+      />
+    );
+  }
+
+  return (
+    <PageSurface
+      pageNumber={page}
+      positionKey={here?.word ? wordKey(here.word) : null}
+      selectedKey={selected?.word?.key ?? null}
+      marks={markMap}
+      readingTheme={readingTheme}
+      onWordTap={onWord}
+      className="mx-auto max-w-4xl"
     />
   );
 }
@@ -137,14 +203,14 @@ function EndButton({ onEnd, large }: { onEnd: () => void; large?: boolean }) {
   );
 }
 
-function CopyLink({ code }: { code: string }) {
+function CopyLink({ code, book }: { code: string; book: Book }) {
   const [copied, setCopied] = useState(false);
   return (
     <Button
       variant="secondary"
       icon={copied ? "check" : "copy"}
       onClick={async () => {
-        const url = `${window.location.origin}/session/${code}?role=student`;
+        const url = `${window.location.origin}/session/${code}?role=student&book=${book}`;
         try {
           await navigator.clipboard.writeText(url);
           setCopied(true);
@@ -161,49 +227,56 @@ function CopyLink({ code }: { code: string }) {
 // ---- Student ---------------------------------------------------------------------
 
 function StudentView({
+  book,
   page,
-  positionKey,
-  markMap,
+  position,
+  marks,
   readingTheme,
   banners,
   connection,
   onPosition,
   onEnd,
 }: {
+  book: Book;
   page: number;
-  positionKey: string | null;
-  markMap: Map<string, LiveMark>;
-  readingTheme: ReturnType<typeof usePrefs>["readingTheme"];
+  position: StudentPosition | null;
+  marks: Record<string, LiveMark>;
+  readingTheme: ReadingTheme;
   banners: ReactNode;
   connection: ReactNode;
-  onPosition: (page: number, word: QuranWord | null) => void;
+  onPosition: (page: number, anchor?: { word?: ReturnType<typeof wordRef>; point?: PagePoint }) => void;
   onEnd: () => void;
 }) {
-  const go = (p: number) => onPosition(p, null);
+  const go = (p: number) => onPosition(p);
   return (
     <div className="flex h-dvh flex-col bg-bg">
       <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-3 py-2">
         <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold tabular-nums">Page {page}</span>
+          <span className="text-lg font-semibold tabular-nums">
+            {book === "qaida" ? "Qaida page" : "Page"} {page}
+          </span>
           {connection}
         </div>
         <EndButton onEnd={onEnd} />
       </header>
       {banners}
       <main id="main" className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-4">
-        <p className="mb-2 text-center text-sm text-muted">Tap the word you are reading.</p>
+        <p className="mb-2 text-center text-sm text-muted">
+          {book === "qaida" ? "Tap where you are reading." : "Tap the word you are reading."}
+        </p>
         <PageTurner onNext={() => go(page + 1)} onPrev={() => go(Math.max(1, page - 1))}>
-          <PageSurface
-            pageNumber={page}
-            positionKey={positionKey}
-            marks={markMap}
+          <SessionPage
+            book={book}
+            page={page}
+            marks={marks}
+            position={position}
             readingTheme={readingTheme}
-            onWordTap={(w) => onPosition(page, w)}
-            className="mx-auto max-w-4xl"
+            onWord={(w) => onPosition(page, { word: wordRef(w) })}
+            onPoint={(p) => onPosition(page, { point: p })}
           />
         </PageTurner>
       </main>
-      <PageNavBar page={page} onChange={go} large />
+      <PageNavBar book={book} page={page} onChange={go} large />
     </div>
   );
 }
@@ -211,10 +284,10 @@ function StudentView({
 // ---- Teacher ---------------------------------------------------------------------
 
 function TeacherView({
+  book,
   studentPage,
-  positionKey,
+  position,
   marks,
-  markMap,
   readingTheme,
   banners,
   connection,
@@ -223,20 +296,20 @@ function TeacherView({
   onClear,
   onEnd,
 }: {
+  book: Book;
   studentPage: number;
-  positionKey: string | null;
+  position: StudentPosition | null;
   marks: Record<string, LiveMark>;
-  markMap: Map<string, LiveMark>;
-  readingTheme: ReturnType<typeof usePrefs>["readingTheme"];
+  readingTheme: ReadingTheme;
   banners: ReactNode;
   connection: ReactNode;
   code: string;
-  onMark: (word: QuranWord, type: MarkType) => void;
+  onMark: (target: Target, type: MarkType) => void;
   onClear: (id: string) => void;
   onEnd: () => void;
 }) {
   const [manualPage, setManualPage] = useState<number | null>(null);
-  const [selected, setSelected] = useState<QuranWord | null>(null);
+  const [selected, setSelected] = useState<Target | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const follow = manualPage === null;
   const viewPage = follow ? studentPage : manualPage;
@@ -244,7 +317,12 @@ function TeacherView({
     setSelected(null);
     setManualPage(p);
   };
-  const selectedMark = selected ? markMap.get(selected.key) : undefined;
+  const markMap = useMemo(() => marksByWord(marks), [marks]);
+  const selectedMark = selected?.markId
+    ? marks[selected.markId]
+    : selected?.word
+      ? markMap.get(selected.word.key)
+      : undefined;
   const markList = Object.values(marks).sort((a, b) => b.at - a.at);
 
   return (
@@ -254,6 +332,9 @@ function TeacherView({
           <span className="font-mono text-sm tracking-widest text-muted" aria-label={`Room code ${code}`}>
             {code}
           </span>
+          {book !== "quran" && (
+            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-sm font-medium">{BOOK_LABEL[book]}</span>
+          )}
           {connection}
         </div>
         <div className="flex items-center gap-1">
@@ -298,14 +379,16 @@ function TeacherView({
       <div className="flex min-h-0 flex-1">
         <main id="main" className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-4">
           <PageTurner onNext={() => go(viewPage + 1)} onPrev={() => go(Math.max(1, viewPage - 1))}>
-            <PageSurface
-              pageNumber={viewPage}
-              positionKey={viewPage === studentPage ? positionKey : null}
-              selectedKey={selected?.key ?? null}
-              marks={markMap}
+            <SessionPage
+              book={book}
+              page={viewPage}
+              marks={marks}
+              position={position}
+              selected={selected}
               readingTheme={readingTheme}
-              onWordTap={(w) => setSelected((cur) => (cur?.key === w.key ? null : w))}
-              className="mx-auto max-w-4xl"
+              onWord={(w) => setSelected((cur) => (cur?.word?.key === w.key ? null : { page: viewPage, word: w }))}
+              onPoint={(p) => setSelected({ page: viewPage, point: p })}
+              onPin={(id) => setSelected((cur) => (cur?.markId === id ? null : { page: viewPage, markId: id }))}
             />
           </PageTurner>
         </main>
@@ -320,6 +403,7 @@ function TeacherView({
         >
           <MarksPanel
             code={code}
+            book={book}
             marks={markList}
             onJump={(p) => {
               go(p);
@@ -332,10 +416,14 @@ function TeacherView({
       </div>
       {selected ? (
         <MarkPalette
-          word={selected}
+          label={
+            selected.word
+              ? `p.${selected.page} · ayah ${selected.word.ayah}, word ${selected.word.wordIndex}`
+              : `p.${selected.page} · ${selectedMark ? "existing mark" : "spot you tapped"}`
+          }
           current={selectedMark}
           onPick={(t) => {
-            onMark(selected, t);
+            onMark({ ...selected, markId: selectedMark?.id }, t);
             setSelected(null);
           }}
           onRemove={() => {
@@ -345,20 +433,20 @@ function TeacherView({
           onCancel={() => setSelected(null)}
         />
       ) : (
-        <PageNavBar page={viewPage} onChange={go} extra={<JumpTo onJump={go} />} />
+        <PageNavBar book={book} page={viewPage} onChange={go} extra={<JumpTo book={book} onJump={go} />} />
       )}
     </div>
   );
 }
 
 function MarkPalette({
-  word,
+  label,
   current,
   onPick,
   onRemove,
   onCancel,
 }: {
-  word: QuranWord;
+  label: string;
   current?: LiveMark;
   onPick: (t: MarkType) => void;
   onRemove: () => void;
@@ -372,10 +460,7 @@ function MarkPalette({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-sm">
-          <span className="font-medium">Mark word</span>{" "}
-          <span className="text-muted">
-            p.{word.page} · ayah {word.ayah}, word {word.wordIndex}
-          </span>
+          <span className="font-medium">Mark</span> <span className="text-muted">{label}</span>
         </p>
         <IconButton icon="x" label="Cancel" onClick={onCancel} />
       </div>
@@ -419,12 +504,14 @@ function MarkPalette({
 
 function MarksPanel({
   code,
+  book,
   marks,
   onJump,
   onClear,
   onClose,
 }: {
   code: string;
+  book: Book;
   marks: LiveMark[];
   onJump: (page: number) => void;
   onClear: (id: string) => void;
@@ -442,7 +529,7 @@ function MarksPanel({
       </div>
       {marks.length === 0 ? (
         <p className="rounded-xl bg-surface-2 p-4 text-sm text-muted">
-          No marks yet. Tap a word on the page to mark it.
+          No marks yet. Tap {book === "qaida" ? "a spot" : "a word"} on the page to mark it.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -450,9 +537,7 @@ function MarksPanel({
             <li key={m.id} className="flex items-center gap-2 rounded-xl border border-border p-2">
               <div className="min-w-0 flex-1">
                 <MarkChip type={m.markType} />
-                <p className="mt-1 text-xs text-muted">
-                  Page {m.page} · ayah {m.ayah}, word {m.wordIndex}
-                </p>
+                <p className="mt-1 text-xs text-muted">{markLocation(m)}</p>
               </div>
               <IconButton icon="eye" label={`Go to page ${m.page}`} onClick={() => onJump(m.page)} />
               <IconButton icon="trash" label="Remove mark" onClick={() => onClear(m.id)} />

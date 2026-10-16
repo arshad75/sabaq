@@ -12,10 +12,11 @@ import { ProgressStats } from "@/components/progress/ProgressStats";
 import { TrendChart } from "@/components/progress/TrendChart";
 import { TeacherNoteForm } from "@/components/teacher/forms";
 import { getPreviewState } from "@/lib/preview";
-import { getSource } from "@/lib/quran";
+import { BOOK_LABEL, bookPageCount } from "@/lib/books";
 import { formatDate } from "@/lib/format";
 import {
   CURRENT,
+  classForStudent,
   getProgressForStudent,
   getStudentForTeacher,
   getTeacherNotes,
@@ -45,8 +46,10 @@ async function StudentScreen({ params, searchParams }: PageProps<"/teacher/stude
   if (!student) notFound();
 
   const empty = state === "empty";
-  const pageCount = getSource().pageCount;
-  const progress = empty ? [] : [...getProgressForStudent(student.id).values()];
+  const cls = classForStudent(CURRENT.teacherId, student.id);
+  const book = cls?.book ?? "quran";
+  const pageCount = bookPageCount(book);
+  const progress = empty ? [] : [...getProgressForStudent(student.id, book).values()];
   const sessions = empty ? [] : listSessionsForStudent(student.id).filter((s) => s.teacherId === CURRENT.teacherId);
   const assignments = empty ? [] : listAssignmentsForStudent(student.id);
   const notes = empty ? [] : getTeacherNotes(CURRENT.teacherId, student.id);
@@ -55,12 +58,15 @@ async function StudentScreen({ params, searchParams }: PageProps<"/teacher/stude
     <>
       <PageHeader
         back={
-          <Link href="/teacher/classes/c1" className="mb-2 inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-fg">
-            <Icon name="chevronLeft" size={16} /> Class
+          <Link
+            href={`/teacher/classes/${cls?.id ?? "c1"}`}
+            className="mb-2 inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-fg"
+          >
+            <Icon name="chevronLeft" size={16} /> {cls?.name ?? "Class"}
           </Link>
         }
         title={student.nickname}
-        description="Progress, assignments, and your private notes."
+        description={`${BOOK_LABEL[book]} · progress, assignments, and your private notes.`}
         actions={<ButtonLink href="/teacher" icon="play">Start session</ButtonLink>}
       />
 
@@ -74,14 +80,17 @@ async function StudentScreen({ params, searchParams }: PageProps<"/teacher/stude
         <div className="space-y-6">
           <ProgressStats progress={progress} pageCount={pageCount} />
           <Card>
-            <CardHeader title="Pages" description="Each square is one page. Choose a page to change its status." />
-            <ProgressExplorer pageCount={pageCount} progress={progress} />
+            <CardHeader
+              title={`${BOOK_LABEL[book]} pages`}
+              description="Each square is one page. Choose a page to change its status."
+            />
+            <ProgressExplorer book={book} pageCount={pageCount} progress={progress} />
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader title="Trend" description="Average marks per session, last 6 weeks" />
-              <TrendChart buckets={weeklyTrend(student.id)} />
+              <TrendChart buckets={weeklyTrend(student.id, book)} />
             </Card>
             <Card>
               <CardHeader title="Assignments" />

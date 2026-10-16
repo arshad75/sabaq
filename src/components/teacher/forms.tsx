@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/Button";
 import { Field, Select, TextArea, TextInput } from "@/components/ui/Form";
 import { Banner } from "@/components/ui/States";
 import { uid } from "@/lib/uid";
-import { ASSIGNMENT_KIND_LABEL } from "@/lib/format";
-import type { AssignmentKind } from "@/lib/domain/types";
+import { ASSIGNMENT_KIND_LABEL, pageRange } from "@/lib/format";
+import { bookPageCount } from "@/lib/books";
+import type { AssignmentKind, Book } from "@/lib/domain/types";
 
 export function InviteLink({ classId, initialExpiry }: { classId: string; initialExpiry: string }) {
   const [token, setToken] = useState<string | null>(null);
@@ -85,7 +86,17 @@ export function TeacherNoteForm({ initial = "", label = "Private note" }: { init
   );
 }
 
-export function AssignForm({ defaultFrom, defaultTo, defaultDue }: { defaultFrom: number; defaultTo: number; defaultDue: string }) {
+export function AssignForm({
+  book,
+  defaultFrom,
+  defaultTo,
+  defaultDue,
+}: {
+  book: Book;
+  defaultFrom: number;
+  defaultTo: number;
+  defaultDue: string;
+}) {
   const [kind, setKind] = useState<AssignmentKind>("recent_revision");
   const [from, setFrom] = useState(String(defaultFrom));
   const [to, setTo] = useState(String(defaultTo));
@@ -100,12 +111,13 @@ export function AssignForm({ defaultFrom, defaultTo, defaultDue }: { defaultFrom
         e.preventDefault();
         const f = Number(from);
         const t = Number(to);
-        if (!Number.isInteger(f) || !Number.isInteger(t) || f < 1 || t > 604 || f > t) {
-          setError("Enter a page range between 1 and 604, start before end.");
+        const max = bookPageCount(book);
+        if (!Number.isInteger(f) || !Number.isInteger(t) || f < 1 || t > max || f > t) {
+          setError(`Enter a page range between 1 and ${max}, start before end.`);
           return;
         }
         setError(null);
-        setDone(`${ASSIGNMENT_KIND_LABEL[kind]}, pages ${f}–${t}, due ${due} assigned.`);
+        setDone(`${ASSIGNMENT_KIND_LABEL[kind]}, ${pageRange(f, t, book).toLowerCase()}, due ${due} assigned.`);
       }}
     >
       <Field id="assign-kind" label="Type">

@@ -62,6 +62,29 @@ test("ending the session shows the ended state on both sides", async ({ browser 
   await context.close();
 });
 
+test("qaida: student points at a spot and teacher marks it on the page image", async ({ browser }) => {
+  const code = generateRoomCode();
+  const context = await browser.newContext();
+  const teacher = await context.newPage();
+  const student = await context.newPage();
+  // Only the teacher's link names the book; the student learns it through sync.
+  await teacher.goto(`/session/${code}?role=teacher&book=qaida`);
+  await student.goto(`/session/${code}?role=student`);
+  await expect(student.getByRole("img", { name: "Noorani Qaida page 1" })).toBeVisible({ timeout: 5000 });
+
+  await student.getByTestId("qaida-page").click({ position: { x: 100, y: 200 } });
+  await expect(teacher.getByRole("img", { name: "Current position" })).toBeVisible({ timeout: 1500 });
+
+  await teacher.getByTestId("qaida-page").click({ position: { x: 150, y: 150 } });
+  await teacher.getByRole("dialog", { name: "Mark this word" }).getByRole("button", { name: /Pronounce/ }).click();
+  await expect(student.getByRole("img", { name: "Mark: Pronunciation" })).toBeVisible({ timeout: 1500 });
+
+  await student.getByRole("button", { name: "Next page" }).click();
+  await expect(teacher.getByRole("img", { name: "Noorani Qaida page 2" })).toBeVisible({ timeout: 1500 });
+
+  await context.close();
+});
+
 test("join form rejects a malformed code", async ({ page }) => {
   await page.goto("/join");
   await page.getByLabel("Room code").fill("AB1");

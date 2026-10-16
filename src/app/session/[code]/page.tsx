@@ -5,7 +5,7 @@ import { FullScreenMessage } from "@/components/session/parts";
 import { SessionClient, SessionLoading } from "@/components/session/SessionClient";
 import type { ForcedSessionState } from "@/components/session/LiveSession";
 import { previewEnabled } from "@/lib/preview";
-import { clampPage } from "@/lib/quran";
+import { clampBookPage, parseBook } from "@/lib/books";
 import { isValidRoomCode, normaliseRoomCode } from "@/lib/session/room-code";
 import type { SessionRole } from "@/lib/session/events";
 
@@ -50,6 +50,8 @@ async function SessionRoute({ params, searchParams }: PageProps<"/session/[code]
     );
   }
 
+  const book = parseBook(one(sp.book));
+  const bookQs = book ? `&book=${book}` : "";
   const roleParam = one(sp.role);
   const role: SessionRole | null = roleParam === "teacher" || roleParam === "student" ? roleParam : null;
   if (!role) {
@@ -57,10 +59,10 @@ async function SessionRoute({ params, searchParams }: PageProps<"/session/[code]
       <FullScreenMessage title={`Join room ${code}`}>
         <p>Who is joining on this device?</p>
         <div className="grid gap-3">
-          <ButtonLink href={`/session/${code}?role=student`} size="lg" icon="book">
+          <ButtonLink href={`/session/${code}?role=student${bookQs}`} size="lg" icon="book">
             I’m the student
           </ButtonLink>
-          <ButtonLink href={`/session/${code}?role=teacher`} size="lg" variant="secondary" icon="users">
+          <ButtonLink href={`/session/${code}?role=teacher${bookQs}`} size="lg" variant="secondary" icon="users">
             I’m the teacher
           </ButtonLink>
         </div>
@@ -68,10 +70,12 @@ async function SessionRoute({ params, searchParams }: PageProps<"/session/[code]
     );
   }
 
-  const startPage = clampPage(Number(one(sp.page)) || 1);
+  const startPage = clampBookPage(book ?? "quran", Number(one(sp.page)) || 1);
   const latencyMs = previewEnabled ? Number(one(sp.latency)) || 0 : 0;
   const forced: ForcedSessionState =
     state === "waiting" || state === "reconnecting" || state === "ended" ? state : null;
 
-  return <SessionClient code={code} role={role} startPage={startPage} latencyMs={latencyMs} forced={forced} />;
+  return (
+    <SessionClient code={code} role={role} book={book} startPage={startPage} latencyMs={latencyMs} forced={forced} />
+  );
 }

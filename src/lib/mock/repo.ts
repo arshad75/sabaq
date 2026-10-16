@@ -2,6 +2,7 @@
 // to an acting user the same way RLS will be, so screens never assume wider access.
 import type {
   Assignment,
+  Book,
   ClassMember,
   ClassRoom,
   LessonSession,
@@ -11,7 +12,7 @@ import type {
   Profile,
   Student,
 } from "@/lib/domain/types";
-import { MARK_TYPES } from "@/lib/domain/types";
+import { BOOKS, MARK_TYPES } from "@/lib/domain/types";
 import { deriveProgress } from "@/lib/progress/derive";
 import * as db from "./data";
 
@@ -77,6 +78,13 @@ export function getStudentForTeacher(teacherId: string, studentId: string): Stud
   return db.students.find((s) => s.id === studentId);
 }
 
+export function classForStudent(teacherId: string, studentId: string): ClassRoom | undefined {
+  const mine = db.classes.filter((c) => c.teacherId === teacherId);
+  return mine.find((c) =>
+    db.classMembers.some((m) => m.classId === c.id && m.studentId === studentId && m.status === "approved"),
+  );
+}
+
 function latestSession(studentId: string, teacherId?: string): LessonSession | undefined {
   return db.sessions
     .filter((s) => s.studentId === studentId && (!teacherId || s.teacherId === teacherId))
@@ -101,7 +109,7 @@ export function getTeacherNotes(teacherId: string, studentId: string) {
 export function studentsNeedingAttention(teacherId: string) {
   return listStudentsForTeacher(teacherId)
     .map((s) => {
-      const progress = getProgressForStudent(s.id);
+      const progress = getProgressForStudent(s.id, primaryBookForStudent(s.id));
       const needsWork = [...progress.values()].filter((p) => p.status === "needs_work").map((p) => p.page);
       return { student: s, needsWorkPages: needsWork };
     })
@@ -127,10 +135,16 @@ export function getSessionForGuardian(guardianId: string, id: string) {
   return s && s.student.guardianId === guardianId ? s : undefined;
 }
 
-export function listSessionsForStudent(studentId: string): LessonSession[] {
+export function listSessionsForStudent(studentId: string, book?: Book): LessonSession[] {
   return db.sessions
-    .filter((s) => s.studentId === studentId && s.endedAt)
+    .filter((s) => s.studentId === studentId && s.endedAt && (!book || s.book === book))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+}
+
+/** Book of the student's first approved class; what their progress screens show. */
+export function primaryBookForStudent(studentId: string): Book {
+  const m = db.classMembers.find((x) => x.studentId === studentId && x.status === "approved");
+  return db.classes.find((c) => c.id === m?.classId)?.book ?? "quran";
 }
 
 export function marksForSession(sessionId: string): Mark[] {
@@ -143,8 +157,8 @@ export function countMarksByType(marks: Pick<Mark, "markType">[]): Record<MarkTy
   return counts;
 }
 
-export function getProgressForStudent(studentId: string): Map<number, PageProgress> {
-  const ss = listSessionsForStudent(studentId).map((s) => ({
+export function getProgressForStudent(studentId: string, book: Book): Map<number, PageProgress> {
+  const ss = listSessionsForStudent(studentId, book).map((s) => ({
     sessionId: s.id,
     startedAt: s.startedAt,
     pagesCovered: s.pagesCovered,
@@ -152,20 +166,21 @@ export function getProgressForStudent(studentId: string): Map<number, PageProgre
   }));
   return deriveProgress(
     studentId,
+    book,
     ss,
     db.progressOverrides.filter((o) => o.studentId === studentId),
   );
 }
 
 /** Marks per session per type, oldest first, for the weekly trend chart. */
-export function weeklyTrend(studentId: string, weeks = 6) {
+export function weeklyTrend(studentId: string, book: Book, weeks = 6) {
   const now = new Date(db.MOCK_NOW).getTime();
   const buckets = Array.from({ length: weeks }, (_, i) => ({
     label: i === weeks - 1 ? "This week" : `${weeks - 1 - i}w ago`,
     sessions: 0,
     counts: Object.fromEntries(MARK_TYPES.map((t) => [t, 0])) as Record<MarkType, number>,
   }));
-  for (const s of listSessionsForStudent(studentId)) {
+  for (const s of listSessionsForStudent(studentId, book)) {
     const weeksAgo = Math.floor((now - new Date(s.startedAt).getTime()) / (7 * 86_400_000));
     const idx = weeks - 1 - weeksAgo;
     if (idx < 0 || idx >= weeks) continue;
@@ -232,7 +247,7 @@ export function exportGuardianData(guardianId: string) {
         })),
         sessions,
         marks: sessions.flatMap((s) => marksForSession(s.id)),
-        pageProgress: [...getProgressForStudent(c.id).values()],
+        pageProgress: BOOKS.flatMap((b) => [...getProgressForStudent(c.id, b).values()]),
         assignments: listAssignmentsForStudent(c.id),
       };
     }),

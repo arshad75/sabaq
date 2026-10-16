@@ -17,7 +17,9 @@ import {
   listChildren,
   listSessionsForStudent,
   pendingApprovalsForGuardian,
+  primaryBookForStudent,
 } from "@/lib/mock/repo";
+import { BOOK_LABEL } from "@/lib/books";
 import { MOCK_NOW } from "@/lib/mock/data";
 
 export const metadata: Metadata = { title: "Family" };
@@ -90,7 +92,8 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/guardian">, "searchP
       <ul className="grid gap-4 md:grid-cols-2">
         {children.map((c) => {
           const last = listSessionsForStudent(c.id)[0];
-          const progress = [...getProgressForStudent(c.id).values()];
+          const book = primaryBookForStudent(c.id);
+          const progress = [...getProgressForStudent(c.id, book).values()];
           const read = progress.filter((p) => p.status !== "not_started").length;
           const solid = progress.filter((p) => p.status === "solid").length;
           const current = listAssignmentsForStudent(c.id).find((a) => a.status === "assigned");
@@ -99,7 +102,10 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/guardian">, "searchP
               <Card className="h-full">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="text-xl font-semibold">{c.nickname}</h2>
+                    <h2 className="text-xl font-semibold">
+                      {c.nickname}{" "}
+                      <span className="align-middle text-sm font-medium text-muted">· {BOOK_LABEL[book]}</span>
+                    </h2>
                     <p className="mt-1 text-sm text-muted">
                       {last ? `Last lesson ${relativeDays(last.startedAt, MOCK_NOW)}` : "No lessons yet"}
                     </p>
@@ -108,7 +114,7 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/guardian">, "searchP
                         <Badge tone="primary" icon="book">
                           {ASSIGNMENT_KIND_LABEL[current.kind]}
                         </Badge>{" "}
-                        <span className="text-sm">{pageRange(current.fromPage, current.toPage)}</span>
+                        <span className="text-sm">{pageRange(current.fromPage, current.toPage, current.book)}</span>
                       </p>
                     ) : (
                       <p className="mt-3 text-sm text-muted">No homework right now.</p>

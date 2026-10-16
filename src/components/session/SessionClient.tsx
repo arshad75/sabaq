@@ -4,6 +4,7 @@ import { useIsClient } from "@/lib/session/use-live-session";
 import { LiveSession, type ForcedSessionState } from "./LiveSession";
 import { PageSkeleton } from "./parts";
 import type { SessionRole } from "@/lib/session/events";
+import type { Book } from "@/lib/domain/types";
 
 export function SessionLoading() {
   return (
@@ -22,6 +23,7 @@ export function SessionLoading() {
 export function SessionClient(props: {
   code: string;
   role: SessionRole;
+  book?: Book | null;
   startPage?: number;
   latencyMs?: number;
   forced?: ForcedSessionState;

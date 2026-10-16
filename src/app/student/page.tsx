@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/ui/States";
 import { Icon } from "@/components/ui/Icon";
-import { getPreviewState } from "@/lib/preview";
+import { getActingStudent, getPreviewState } from "@/lib/preview";
 import { ASSIGNMENT_KIND_LABEL, pageRange, relativeDays } from "@/lib/format";
 import { CURRENT, getStudent, listAssignmentsForStudent, liveSessionForTeacher, studentStreak } from "@/lib/mock/repo";
 import { MOCK_NOW, MOCK_TODAY } from "@/lib/mock/data";
@@ -26,7 +26,8 @@ async function Home({ searchParams }: Pick<PageProps<"/student">, "searchParams"
   if (state === "loading") return <LoadingBlock label="Loading" rows={2} />;
   if (state === "error") return <ErrorState title="Oops" description="We couldn’t load your reading. Ask a grown-up to check the internet." />;
 
-  const me = getStudent(CURRENT.studentId)!;
+  const { id: studentId, qs } = await getActingStudent(searchParams, CURRENT.studentId);
+  const me = getStudent(studentId)!;
   const todo = state === "empty" ? [] : listAssignmentsForStudent(me.id).filter((a) => a.status !== "completed");
   const today = todo.filter((a) => a.dueOn <= MOCK_TODAY).sort((a, b) => a.dueOn.localeCompare(b.dueOn));
   const later = todo.filter((a) => a.dueOn > MOCK_TODAY);
@@ -45,7 +46,7 @@ async function Home({ searchParams }: Pick<PageProps<"/student">, "searchParams"
             <Icon name="wifi" /> Your teacher is ready
           </p>
           <ButtonLink
-            href={`/session/${liveForMe.roomCode}?role=student${first ? `&page=${first.fromPage}` : ""}`}
+            href={`/session/${liveForMe.roomCode}?role=student&book=${liveForMe.book}${first?.book === liveForMe.book ? `&page=${first.fromPage}` : ""}`}
             size="lg"
             icon="play"
             className="mt-3 w-full sm:w-auto"
@@ -61,8 +62,8 @@ async function Home({ searchParams }: Pick<PageProps<"/student">, "searchParams"
         <Card className="p-6">
           <p className="text-base text-muted">Today’s reading</p>
           <p className="mt-1 text-2xl font-semibold">{ASSIGNMENT_KIND_LABEL[first.kind]}</p>
-          <p className="text-xl">{pageRange(first.fromPage, first.toPage)}</p>
-          <ButtonLink href={`/student/assignments/${first.id}`} size="lg" icon="book" className="mt-5 w-full text-xl sm:w-auto">
+          <p className="text-xl">{pageRange(first.fromPage, first.toPage, first.book)}</p>
+          <ButtonLink href={`/student/assignments/${first.id}${qs}`} size="lg" icon="book" className="mt-5 w-full text-xl sm:w-auto">
             Start reading
           </ButtonLink>
         </Card>
@@ -99,13 +100,13 @@ async function Home({ searchParams }: Pick<PageProps<"/student">, "searchParams"
               .map((a) => (
                 <li key={a.id}>
                   <Link
-                    href={`/student/assignments/${a.id}`}
+                    href={`/student/assignments/${a.id}${qs}`}
                     className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 hover:bg-surface-2"
                   >
                     <span>
                       <span className="block font-semibold">{ASSIGNMENT_KIND_LABEL[a.kind]}</span>
                       <span className="block text-base text-muted">
-                        {pageRange(a.fromPage, a.toPage)} · due {relativeDays(a.dueOn, MOCK_NOW)}
+                        {pageRange(a.fromPage, a.toPage, a.book)} · due {relativeDays(a.dueOn, MOCK_NOW)}
                       </span>
                     </span>
                     <Icon name="chevronRight" />

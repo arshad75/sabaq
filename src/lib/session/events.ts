@@ -1,19 +1,26 @@
-import type { MarkType } from "@/lib/domain/types";
+import type { Book, MarkType } from "@/lib/domain/types";
 import type { WordRef } from "@/lib/quran/types";
 
 export type SessionRole = "teacher" | "student";
 
-export type LiveMark = WordRef & {
+/** Fraction of page width/height, for image pages that have no word data. */
+export type PagePoint = { x: number; y: number };
+
+export type LiveMark = {
   id: string;
   markType: MarkType;
+  page: number;
+  word: WordRef | null;
+  point: PagePoint | null;
   /** Last change time; a newer edit with the same id replaces the old one. */
   at: number;
 };
 
-export type StudentPosition = { page: number; word: WordRef | null; at: number };
+export type StudentPosition = { page: number; word: WordRef | null; point: PagePoint | null; at: number };
 
 /** Everything both ends must agree on. Sent whole on rejoin (sync_state). */
 export type SharedState = {
+  book: Book | null;
   position: StudentPosition | null;
   marks: Record<string, LiveMark>;
   cleared: string[];
@@ -26,11 +33,17 @@ export type SessionEvent =
   | { type: "mark"; from: SessionRole; mark: LiveMark }
   | { type: "clear_mark"; from: SessionRole; markId: string }
   | { type: "presence"; from: SessionRole; clientId: string; connected: boolean }
-  | { type: "sync_request"; from: SessionRole; clientId: string }
+  | { type: "sync_request"; from: SessionRole; clientId: string; state: SharedState }
   | { type: "sync_state"; from: SessionRole; to: string; state: SharedState }
   | { type: "end"; from: SessionRole; at: number };
 
-export const emptySharedState = (): SharedState => ({ position: null, marks: {}, cleared: [], endedAt: null });
+export const emptySharedState = (book: Book | null = null): SharedState => ({
+  book,
+  position: null,
+  marks: {},
+  cleared: [],
+  endedAt: null,
+});
 
 function mergeMark(state: SharedState, mark: LiveMark): SharedState {
   if (state.cleared.includes(mark.id)) return state;
@@ -49,6 +62,7 @@ function clearMark(state: SharedState, markId: string): SharedState {
 export function mergeShared(a: SharedState, b: SharedState): SharedState {
   let s: SharedState = {
     ...a,
+    book: a.book ?? b.book,
     position: !a.position || (b.position && b.position.at > a.position.at) ? b.position : a.position,
     endedAt: a.endedAt ?? b.endedAt,
   };
@@ -67,6 +81,7 @@ export function applyEvent(state: SharedState, event: SessionEvent): SharedState
       return mergeMark(state, event.mark);
     case "clear_mark":
       return clearMark(state, event.markId);
+    case "sync_request":
     case "sync_state":
       return mergeShared(state, event.state);
     case "end":
@@ -78,6 +93,6 @@ export function applyEvent(state: SharedState, event: SessionEvent): SharedState
 
 export function marksByWord(marks: Record<string, LiveMark>): Map<string, LiveMark> {
   const map = new Map<string, LiveMark>();
-  for (const m of Object.values(marks)) map.set(`${m.surah}:${m.ayah}:${m.wordIndex}`, m);
+  for (const m of Object.values(marks)) if (m.word) map.set(`${m.word.surah}:${m.word.ayah}:${m.word.wordIndex}`, m);
   return map;
 }

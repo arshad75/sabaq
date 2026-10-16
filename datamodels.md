@@ -15,27 +15,28 @@ Students are not auth users by default; see `students`.
 No birthdate, no photo, no free-text fields.
 
 ### classes
-`teacher_id` -> profiles, `name`.
+`teacher_id` -> profiles, `name`, `book` (quran | qaida, default book for sessions).
 
 ### class_members
 `class_id`, `student_id`, `status` (invited | approved | revoked),
 `approved_by_guardian_at`, `invite_token_hash`, `invite_expires_at`.
 
 ### sessions
-`class_id`, `teacher_id`, `student_id`, `room_code` (unique while active),
+`class_id`, `teacher_id`, `student_id`, `room_code` (unique while active), `book`,
 `started_at`, `ended_at`, `teacher_note`.
 
 ### marks
 `session_id`, `student_id`, `mark_type` (repeat | pronunciation | tajweed | slip | good),
-`surah`, `ayah`, `word_index`, `page`, `note` (short, optional), `created_by`.
+`book`, `page`, then either a word anchor (`surah`, `ayah`, `word_index`; Quran) or a
+point anchor (`x`, `y` as 0..1 of the page image; Qaida), `note` (short, optional), `created_by`.
 
 ### page_progress
-`student_id`, `page`, `status` (not_started | in_progress | needs_work | solid),
+`student_id`, `book`, `page`, `status` (not_started | in_progress | needs_work | solid),
 `source` (derived | teacher_override), `updated_by`, `updated_at`.
-Unique on (`student_id`, `page`).
+Unique on (`student_id`, `book`, `page`).
 
 ### assignments
-`student_id`, `teacher_id`, `kind` (new | recent_revision | old_revision),
+`student_id`, `teacher_id`, `kind` (new | recent_revision | old_revision), `book`,
 `from_page`, `to_page` (or ayah range), `due_on`, `status`
 (assigned | completed | needs_more_work), `teacher_feedback`.
 
@@ -67,8 +68,8 @@ sessions, marks, page_progress, assignments all hang off student + teacher.
 ## Realtime events (Broadcast, not stored unless noted)
 
 ```
-position     { page, word_index, at }
-mark         { mark_type, surah, ayah, word_index, page }   # also persisted
+position     { page, word | point, at }
+mark         { mark_type, page, word | point }   # also persisted
 clear_mark   { mark_id }
 presence     { role, connected }
 sync_request / sync_state   # rejoin: send current page + marks

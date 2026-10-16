@@ -33,7 +33,7 @@ export function AssignmentList({
           <div className="flex flex-wrap items-center justify-between gap-2 py-3">
             <div className="min-w-0">
               <p className="font-medium">
-                {ASSIGNMENT_KIND_LABEL[a.kind]} · {pageRange(a.fromPage, a.toPage)}
+                {ASSIGNMENT_KIND_LABEL[a.kind]} · {pageRange(a.fromPage, a.toPage, a.book)}
               </p>
               <p className="text-sm text-muted">
                 Due {formatDate(a.dueOn)} ({relativeDays(a.dueOn, MOCK_NOW)})
@@ -87,7 +87,9 @@ export function SessionList({
                   {formatDateLong(s.startedAt)}
                 </p>
                 <p className="text-sm text-muted">
-                  {s.pagesCovered.length ? pageRange(Math.min(...s.pagesCovered), Math.max(...s.pagesCovered)) : "No pages"}
+                  {s.pagesCovered.length
+                    ? pageRange(Math.min(...s.pagesCovered), Math.max(...s.pagesCovered), s.book)
+                    : "No pages"}
                   {mins !== null && ` · ${mins} min`}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">

@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
-import type { MarkType } from "@/lib/domain/types";
+import type { Book, MarkType } from "@/lib/domain/types";
 import type { WordRef } from "@/lib/quran/types";
 import { uid } from "@/lib/uid";
 import {
   applyEvent,
   emptySharedState,
   marksByWord,
+  mergeShared,
+  type PagePoint,
   type SessionEvent,
   type SessionRole,
   type SharedState,
@@ -23,14 +25,17 @@ function storageKey(code: string, role: SessionRole) {
   return `lesson-sync:session:${code}:${role}`;
 }
 
-function loadSaved(code: string, role: SessionRole): SharedState {
+function loadSaved(code: string, role: SessionRole, urlBook: Book | null): SharedState {
+  let saved = emptySharedState();
   try {
     const raw = sessionStorage.getItem(storageKey(code, role));
-    if (raw) return { ...emptySharedState(), ...(JSON.parse(raw) as SharedState) };
+    if (raw) saved = { ...saved, ...(JSON.parse(raw) as SharedState) };
   } catch {
     // Corrupt or unavailable storage: start fresh; the peer will resync us.
   }
-  return emptySharedState();
+  // The teacher picks the book; a student without one learns it from the teacher's state.
+  const book = role === "teacher" ? (urlBook ?? saved.book) : (saved.book ?? urlBook);
+  return { ...saved, book };
 }
 
 type Action = { type: "event"; event: SessionEvent };
@@ -52,13 +57,15 @@ function subscribeOnline(cb: () => void) {
 export function useLiveSession({
   code,
   role,
+  book = null,
   latencyMs = 0,
 }: {
   code: string;
   role: SessionRole;
+  book?: Book | null;
   latencyMs?: number;
 }) {
-  const [shared, dispatch] = useReducer(reducer, undefined, () => loadSaved(code, role));
+  const [shared, dispatch] = useReducer(reducer, undefined, () => loadSaved(code, role, book));
   const [clientId] = useState(uid);
   const [peer, setPeer] = useState<{ lastSeen: number | null; left: boolean }>({ lastSeen: null, left: false });
   const [now, setNow] = useState(0);
@@ -87,8 +94,10 @@ export function useLiveSession({
           seen(!e.connected);
           return;
         case "sync_request":
+          // Requests carry the sender's state, so whoever joins second still brings both sides together.
           seen();
-          t.send({ type: "sync_state", from: role, to: e.clientId, state: sharedRef.current });
+          dispatch({ type: "event", event: e });
+          t.send({ type: "sync_state", from: role, to: e.clientId, state: mergeShared(sharedRef.current, e.state) });
           return;
         case "sync_state":
           if (e.to !== clientId) return;
@@ -103,7 +112,7 @@ export function useLiveSession({
 
     const hello = () => {
       t.send({ type: "presence", from: role, clientId, connected: true });
-      t.send({ type: "sync_request", from: role, clientId });
+      t.send({ type: "sync_request", from: role, clientId, state: sharedRef.current });
     };
     hello();
     const heartbeat = setInterval(() => {
@@ -131,17 +140,32 @@ export function useLiveSession({
   }, []);
 
   const setPosition = useCallback(
-    (page: number, word: WordRef | null) => emit({ type: "position", from: role, position: { page, word, at: Date.now() } }),
+    (page: number, anchor: { word?: WordRef; point?: PagePoint } = {}) =>
+      emit({
+        type: "position",
+        from: role,
+        position: { page, word: anchor.word ?? null, point: anchor.point ?? null, at: Date.now() },
+      }),
     [emit, role],
   );
 
+  /** Re-marking the same word, or passing an existing mark id, changes that mark instead of adding one. */
   const setMark = useCallback(
-    (word: WordRef, markType: MarkType) => {
-      const existing = marksByWord(sharedRef.current.marks).get(`${word.surah}:${word.ayah}:${word.wordIndex}`);
+    (page: number, anchor: { word?: WordRef; point?: PagePoint }, markType: MarkType, markId?: string) => {
+      const w = anchor.word;
+      const existing = w ? marksByWord(sharedRef.current.marks).get(`${w.surah}:${w.ayah}:${w.wordIndex}`) : undefined;
+      const prev = markId ? sharedRef.current.marks[markId] : existing;
       emit({
         type: "mark",
         from: role,
-        mark: { ...word, id: existing?.id ?? uid(), markType, at: Date.now() },
+        mark: {
+          id: prev?.id ?? uid(),
+          page,
+          word: w ?? prev?.word ?? null,
+          point: anchor.point ?? prev?.point ?? null,
+          markType,
+          at: Date.now(),
+        },
       });
     },
     [emit, role],
@@ -157,7 +181,7 @@ export function useLiveSession({
   else if (now - peer.lastSeen > STALE_MS) peerStatus = "reconnecting";
   else peerStatus = "connected";
 
-  return { shared, online, peerStatus, setPosition, setMark, clearMark, endSession };
+  return { shared, book: shared.book ?? "quran", online, peerStatus, setPosition, setMark, clearMark, endSession };
 }
 
 const noopSubscribe = () => () => {};
