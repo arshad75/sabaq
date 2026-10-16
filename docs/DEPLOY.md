@@ -1,8 +1,8 @@
 # Deploying the pilot
 
-Stack: **Vercel Hobby** (app, Singapore) + **Supabase Free** (Postgres, Realtime, Singapore)
+Stack: **Vercel Hobby** (app, Tokyo `hnd1`) + **Supabase Free** (Postgres, Realtime, Tokyo)
 + **GitHub Actions** (CI, nightly encrypted backup). All free. Vercel Hobby is for
-non-commercial use; that fits a free pilot.
+non-commercial use; that fits a free pilot. Keep the Vercel region next to the database.
 
 ## What works once hosted
 
@@ -53,7 +53,7 @@ CI runs lint, types, unit tests, build, RLS tests and e2e on every push.
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable key |
    | `SESSION_SECRET` | output of `openssl rand -hex 32` |
 
-3. Deploy. `vercel.json` pins functions to Singapore (`sin1`), next to the database.
+3. Deploy. `vercel.json` pins functions to the database's region.
 4. Supabase → **Authentication → URL Configuration**: set Site URL to the Vercel URL.
 
 ## 4. Nightly backups

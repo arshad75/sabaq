@@ -6,6 +6,9 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 
 - Pilot for ~6-7 students runs free: Vercel Hobby (`sin1`) + Supabase Free (Singapore,
   roughly midway between India and Australia) + GitHub Actions. Steps in `docs/DEPLOY.md`.
+- The hosted Supabase project was created in Tokyo, so Vercel functions run in `hnd1`
+  to stay next to it. Singapore would be ~100 ms closer for India/Australia; fine for
+  small sync events, can move later.
 - Added `@supabase/supabase-js` (Realtime) and the `supabase` CLI (dev: local stack,
   migrations, pgTAP RLS tests). Requested by the user as part of "create the stack".
 - Live sync uses Supabase Realtime Broadcast on public channel `room:<code>` when
