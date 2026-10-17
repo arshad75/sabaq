@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
 import { QAIDA } from "@/lib/books";
 import { Icon } from "@/components/ui/Icon";
+import { AuthNavLink } from "@/components/auth/AuthNavLink";
 import { BottomNav, TopNav, type NavItem } from "./Nav";
 
 export function Brand({ href = "/" }: { href?: string }) {
@@ -106,9 +107,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
             <Link href="/join" className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2">
               Join<span className="hidden sm:inline">&nbsp;a session</span>
             </Link>
-            <Link href="/login" className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2">
-              Log in
-            </Link>
+            <AuthNavLink className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2" />
           </nav>
         </div>
       </header>

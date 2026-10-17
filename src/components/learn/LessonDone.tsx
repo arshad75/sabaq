@@ -4,14 +4,15 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import type { LessonResult, Outcome } from "@/lib/learn/progress";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Confetti } from "./Confetti";
+import { LightMotes } from "./LightMotes";
 import { Mascot } from "./Mascot";
+import { Star8 } from "./Star8";
 
 function StatCard({ icon, label, value, tone }: { icon: IconName; label: string; value: string; tone: string }) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl border-2 text-center", tone)}>
-      <p className="px-2 py-1 text-xs font-bold tracking-wide uppercase">{label}</p>
-      <p className="flex items-center justify-center gap-1.5 bg-surface px-3 py-3 text-2xl font-bold text-fg">
+    <div className="rounded-2xl border border-border bg-surface px-2 py-3 text-center shadow-sm">
+      <p className="text-xs font-semibold text-muted">{label}</p>
+      <p className={cn("mt-1 flex items-center justify-center gap-1.5 text-2xl font-bold", tone)}>
         <Icon name={icon} size={22} /> {value}
       </p>
     </div>
@@ -52,30 +53,32 @@ export function LessonDone({
 
   return (
     <div data-no-say role="dialog" aria-modal="true" aria-label="Lesson complete" className="fixed inset-0 z-40 flex flex-col bg-bg" data-testid="lesson-done">
-      {at === "lesson" && <Confetti />}
+      {at === "lesson" && <LightMotes />}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-4 py-8 text-center">
         {at === "lesson" && (
           <>
-            <Mascot mood="cheer" size={140} className="animate-pop-in" />
-            <h1 className="text-3xl font-bold text-star sm:text-4xl">{review ? "Practice complete!" : perfect ? "Perfect lesson!" : "Lesson complete!"}</h1>
+            <Star8 size={168} fill="var(--primary)" glow className="animate-pop-in">
+              <Mascot mood="cheer" size={112} />
+            </Star8>
+            <h1 className="text-3xl font-bold sm:text-4xl">{review ? "Practice complete!" : perfect ? "MashaAllah, perfect!" : "Lesson complete!"}</h1>
             {!review && (
-              <ul className="flex gap-2" aria-label={`${outcome.stars} of 3 stars`}>
+              <ul className="flex items-end gap-3" aria-label={`${outcome.stars} of 3 lamps lit`}>
                 {[1, 2, 3].map((n) => (
                   <li
                     key={n}
                     aria-hidden
-                    className={cn("animate-pop-in", n <= outcome.stars ? "text-star" : "text-surface-2")}
+                    className={cn("animate-pop-in", n <= outcome.stars ? "text-star animate-glow" : "text-border")}
                     style={{ animationDelay: `${0.25 + n * 0.2}s` } as CSSProperties}
                   >
-                    <Icon name="star" size={n === 2 ? 64 : 52} fill="currentColor" strokeWidth={1.5} />
+                    <Icon name="lantern" size={n === 2 ? 64 : 52} fill={n <= outcome.stars ? "currentColor" : "none"} strokeWidth={1.5} />
                   </li>
                 ))}
               </ul>
             )}
             <div className="grid w-full grid-cols-3 gap-3">
-              <StatCard icon="zap" label="Total XP" value={`+${outcome.xp}`} tone="border-star bg-star text-primary-fg" />
-              <StatCard icon="target" label={perfect ? "Amazing" : "Accuracy"} value={`${accuracy}%`} tone="border-success bg-success text-primary-fg" />
-              <StatCard icon="clock" label="Time" value={time(result.ms)} tone="border-mark-slip bg-mark-slip text-primary-fg" />
+              <StatCard icon="spark" label="Noor earned" value={`+${outcome.xp}`} tone="text-star" />
+              <StatCard icon="target" label={perfect ? "Amazing" : "Accuracy"} value={`${accuracy}%`} tone="text-success" />
+              <StatCard icon="clock" label="Time" value={time(result.ms)} tone="text-mark-slip" />
             </div>
             {outcome.goalJustMet && (
               <p className="inline-flex items-center gap-2 rounded-full bg-tile-sun px-4 py-2 font-semibold">
@@ -86,11 +89,11 @@ export function LessonDone({
         )}
         {at === "streak" && (
           <>
-            <span className="animate-pop-in grid size-40 place-items-center rounded-full bg-tile-peach text-mark-repeat">
-              <Icon name="flame" size={96} fill="currentColor" strokeWidth={1} />
+            <span className="animate-pop-in grid size-40 place-items-center rounded-full bg-tile-sky text-mark-slip">
+              <Icon name="moon" size={96} fill="currentColor" strokeWidth={1} />
             </span>
-            <p className="text-7xl font-black text-mark-repeat">{outcome.streakAfter}</p>
-            <h1 className="text-3xl font-bold">day streak!</h1>
+            <p className="text-7xl font-black text-mark-slip">{outcome.streakAfter}</p>
+            <h1 className="text-3xl font-bold">days in a row!</h1>
             <p className="max-w-sm text-lg text-muted">
               {outcome.streakAfter === 1 ? "You started a streak. Come back tomorrow to keep it going!" : "Keep it up! A little every day makes reading strong."}
             </p>
@@ -126,7 +129,7 @@ export function LessonDone({
             autoFocus
             onClick={advance}
             style={{ "--edge": "color-mix(in srgb, var(--primary) 55%, black)" } as CSSProperties}
-            className="press-3d min-h-14 w-full rounded-2xl bg-primary text-lg font-bold tracking-wide text-primary-fg uppercase"
+            className="min-h-14 w-full rounded-full bg-primary text-lg font-semibold text-primary-fg shadow-sm transition hover:brightness-110"
           >
             Continue
           </button>

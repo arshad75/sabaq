@@ -111,15 +111,15 @@ type BadgeRule = Omit<Badge, "earned"> & { test: (d: LearnerData, today: string,
 const BADGES: BadgeRule[] = [
   { id: "first", title: "First step", description: "Finish your first lesson", icon: "check", test: (d) => Object.keys(d.lessons).length > 0 },
   { id: "perfect", title: "Perfect!", description: "A lesson with no mistakes", icon: "star", test: (_d, _t, r) => !!r && r.total > 0 && r.correct === r.total },
-  { id: "streak3", title: "On fire", description: "Learn 3 days in a row", icon: "flame", test: (d, t) => streak(d.days, t) >= 3 },
-  { id: "streak7", title: "Week of light", description: "Learn 7 days in a row", icon: "flame", test: (d, t) => streak(d.days, t) >= 7 },
+  { id: "streak3", title: "Rising crescent", description: "Learn 3 days in a row", icon: "moon", test: (d, t) => streak(d.days, t) >= 3 },
+  { id: "streak7", title: "Full moon", description: "Learn 7 days in a row", icon: "moon", test: (d, t) => streak(d.days, t) >= 7 },
   { id: "alphabet", title: "Alphabet hero", description: "Meet all 29 letters", icon: "book", test: (d) => ["u1", "u2", "u3"].every((u) => unitDone(d, u)) },
   { id: "dots", title: "Dot detective", description: "Finish Spot the dots", icon: "target", test: (d) => unitDone(d, "u4") },
   { id: "book", title: "Book explorer", description: "Find letters in your Qaida", icon: "book", test: (d) => unitDone(d, "u5") },
   { id: "shapes", title: "Shape spotter", description: "Finish Letter shapes", icon: "target", test: (d) => unitDone(d, "u6") },
   { id: "vowels", title: "First sounds", description: "Finish Short vowels", icon: "star", test: (d) => unitDone(d, "u7") },
-  { id: "xp100", title: "100 XP", description: "Earn 100 XP", icon: "star", test: (d) => d.xp >= 100 },
-  { id: "xp500", title: "500 XP", description: "Earn 500 XP", icon: "star", test: (d) => d.xp >= 500 },
+  { id: "xp100", title: "100 Noor", description: "Gather 100 Noor", icon: "star", test: (d) => d.xp >= 100 },
+  { id: "xp500", title: "500 Noor", description: "Gather 500 Noor", icon: "star", test: (d) => d.xp >= 500 },
   { id: "master10", title: "Strong ten", description: "Make 10 letters strong", icon: "check", test: (d) => masteredCount(d) >= 10 },
 ];
 
@@ -191,4 +191,52 @@ export function lastWeek(data: LearnerData, today: string): { day: string; xp: n
     const day = addDays(today, i - 6);
     return { day, xp: data.days[day] ?? 0 };
   });
+}
+
+/** Fills in any missing fields, so saved or synced data from older versions is safe to use. */
+export function normalizeLearnerData(raw: unknown): LearnerData {
+  const d = (raw && typeof raw === "object" ? raw : {}) as Partial<LearnerData>;
+  const obj = <T>(v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, T>) : {});
+  return {
+    xp: typeof d.xp === "number" && d.xp >= 0 ? d.xp : 0,
+    days: obj<number>(d.days),
+    lessons: obj<LessonStat>(d.lessons),
+    items: obj<ItemStat>(d.items),
+    goal: GOALS.some((g) => g.xp === d.goal) ? (d.goal as number) : 20,
+    badges: obj<string>(d.badges),
+  };
+}
+
+/**
+ * Combines progress made on two devices without losing either: the best of each lesson, the
+ * most recent view of each letter, every day learned and every badge. `mine` wins on settings.
+ */
+export function mergeLearnerData(mine: LearnerData, theirs: LearnerData): LearnerData {
+  const days = { ...theirs.days };
+  for (const [k, v] of Object.entries(mine.days)) days[k] = Math.max(v, days[k] ?? 0);
+
+  const lessons = { ...theirs.lessons };
+  for (const [k, a] of Object.entries(mine.lessons)) {
+    const b = lessons[k];
+    lessons[k] = b
+      ? {
+          stars: Math.max(a.stars, b.stars) as 1 | 2 | 3,
+          best: Math.max(a.best, b.best),
+          plays: Math.max(a.plays, b.plays),
+          last: a.last > b.last ? a.last : b.last,
+        }
+      : a;
+  }
+
+  const items = { ...theirs.items };
+  for (const [k, a] of Object.entries(mine.items)) {
+    const b = items[k];
+    items[k] = !b || a.last > b.last || (a.last === b.last && a.seen >= b.seen) ? a : b;
+  }
+
+  const badges = { ...theirs.badges };
+  for (const [k, v] of Object.entries(mine.badges)) badges[k] = badges[k] && badges[k] < v ? badges[k] : v;
+
+  const fromDays = Object.values(days).reduce((s, v) => s + v, 0);
+  return { xp: Math.max(fromDays, mine.xp, theirs.xp), days, lessons, items, goal: mine.goal, badges };
 }

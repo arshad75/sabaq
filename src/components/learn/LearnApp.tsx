@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { lessonById, type Lesson } from "@/lib/learn/curriculum";
 import { buildLesson, buildReview, seeded, type Exercise } from "@/lib/learn/exercises";
 import { badgesOf, dayKey, isUnlocked, learnedLetters, strengthOf, streak, type LearnerData, type LessonResult, type Outcome } from "@/lib/learn/progress";
-import { activeLearner, recordResult, useLearnStore } from "@/lib/learn/store";
+import { activeLearner, recordResult, switchLearner, useLearnStore } from "@/lib/learn/store";
+import { pushActive, syncJourney, watchConnection } from "@/lib/learn/sync";
 import { warmUpLetterVoice } from "@/lib/qaida/letters";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/States";
 import { LessonDone } from "./LessonDone";
 import { LessonPlayer } from "./LessonPlayer";
-import { LearnersView, ReviewIntro, StatsBar, Tabs, Welcome } from "./LearnParts";
+import { AccountBar, LearnersView, ReviewIntro, StatsBar, Tabs, Welcome } from "./LearnParts";
 import { PathView } from "./PathView";
 import { ProfileView } from "./ProfileView";
 import { Ring } from "./Ring";
@@ -57,6 +58,7 @@ function Session({
   const finish = useCallback((result: LessonResult) => {
     const outcome = recordResult(result);
     if (outcome) setDone({ result, outcome });
+    void pushActive();
   }, []);
   if (done) return <LessonDone {...done} review={review} onContinue={() => navigate("", true)} />;
   return <LessonPlayer lessonId={lessonId} title={title} exercises={exercises} onQuit={() => navigate("", true)} onFinish={finish} />;
@@ -69,22 +71,22 @@ function SidePanel({ data }: { data: LearnerData }) {
   return (
     <aside className="hidden space-y-4 lg:block">
       <div className="flex items-center gap-4 rounded-2xl border-2 border-border bg-surface p-4">
-        <Ring value={todayXp} max={data.goal} size={72} label={`${todayXp} of ${data.goal} XP today`}>
+        <Ring value={todayXp} max={data.goal} size={72} label={`${todayXp} of ${data.goal} Noor today`}>
           <span className="text-sm font-bold">
             {Math.min(todayXp, data.goal)}/{data.goal}
           </span>
         </Ring>
         <div>
           <p className="font-bold">Daily goal</p>
-          <p className="text-sm text-muted">{todayXp >= data.goal ? "Done for today. MashaAllah!" : `${data.goal - todayXp} XP to go today`}</p>
+          <p className="text-sm text-muted">{todayXp >= data.goal ? "Done for today. MashaAllah!" : `${data.goal - todayXp} Noor to go today`}</p>
         </div>
       </div>
       <div className="flex items-center gap-4 rounded-2xl border-2 border-border bg-surface p-4">
-        <span className="grid size-[72px] place-items-center rounded-full bg-tile-peach text-mark-repeat">
-          <Icon name="flame" size={36} fill={todayXp > 0 ? "currentColor" : "none"} />
+        <span className="grid size-[72px] place-items-center rounded-full bg-tile-sky text-mark-slip">
+          <Icon name="moon" size={36} fill={todayXp > 0 ? "currentColor" : "none"} />
         </span>
         <div>
-          <p className="font-bold">{streak(data.days, today)} day streak</p>
+          <p className="font-bold">{streak(data.days, today)} days in a row</p>
           <p className="text-sm text-muted">{todayXp > 0 ? "You learned today!" : "Do a lesson to keep it going."}</p>
         </div>
       </div>
@@ -132,12 +134,23 @@ export function LearnApp() {
   const store = useLearnStore();
   const route = useRoute();
   useEffect(() => warmUpLetterVoice(), []);
+  useEffect(() => {
+    void syncJourney();
+    return watchConnection();
+  }, []);
+  const [page, arg] = route;
+  // Links from the family page open a specific child's journey, once sync has brought them in.
+  const asTarget = page === "as" && arg ? store?.learners.find((l) => l.studentId === arg) : undefined;
+  useEffect(() => {
+    if (!asTarget) return;
+    switchLearner(asTarget.id);
+    navigate("", true);
+  }, [asTarget]);
 
   if (!store) return <Skeleton className="h-96 w-full rounded-3xl" />;
   const active = activeLearner(store);
   if (!active) return <Welcome onDone={() => navigate("", true)} />;
   const { learner, data } = active;
-  const [page, arg] = route;
 
   if (page === "learners") return <LearnersView store={store} onDone={() => navigate("", true)} />;
 
@@ -173,6 +186,7 @@ export function LearnApp() {
         <StatsBar learner={learner} data={data} onLearners={() => navigate("learners")} />
         <Tabs at={tab} go={navigate} />
       </div>
+      <AccountBar />
       {tab === "path" && (
         <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
           <PathView data={data} name={learner.name} onStart={(id) => navigate(`lesson/${id}`)} />

@@ -67,7 +67,7 @@ test("a lesson only ever says the letters being learned", async ({ page }) => {
   await page.getByLabel("What shall we call you?").fill("Listener");
   await page.getByRole("button", { name: "Start learning" }).click();
   await page.locator('[data-lesson="u1-1"]').click();
-  await page.getByRole("button", { name: "Start +10 XP" }).click();
+  await page.getByRole("button", { name: "Begin · +10 Noor" }).click();
   await expect(page.getByText("New letter")).toBeVisible();
 
   const main = page.getByTestId("lesson").locator("main");

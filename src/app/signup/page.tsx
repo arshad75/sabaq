@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { PublicShell } from "@/components/shell/AppShell";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { AccountSignupForm } from "@/components/auth/AccountForms";
-import { supabaseAuth } from "@/lib/auth/mode";
+import { GoogleButton } from "@/components/auth/GoogleButton";
+import { googleAuth, supabaseAuth } from "@/lib/auth/mode";
 import { Card } from "@/components/ui/Card";
 import { ErrorState, LoadingBlock } from "@/components/ui/States";
 import { getPreviewState } from "@/lib/preview";
@@ -29,8 +30,19 @@ async function Content({ searchParams }: Pick<PageProps<"/signup">, "searchParam
   if (state === "loading") return <LoadingBlock rows={1} />;
   if (state === "error") return <ErrorState description="Sign-up is unavailable right now. Please try again in a minute." />;
   return (
-    <Card>
-      {supabaseAuth ? <AccountSignupForm /> : <SignupForm />}
+    <Card className="space-y-4">
+      {googleAuth ? (
+        <>
+          <GoogleButton label="Sign up with Google" />
+          <p className="text-center text-sm text-muted">
+            One tap, no forms. We keep only your name and email, and you can delete everything at any time.
+          </p>
+        </>
+      ) : supabaseAuth ? (
+        <AccountSignupForm />
+      ) : (
+        <SignupForm />
+      )}
     </Card>
   );
 }

@@ -1,21 +1,14 @@
 "use client";
 
-// Learning progress lives on this device only (never sent anywhere), with one record per
-// learner so siblings can share a tablet. A nickname and a colour are all we keep.
+// The learning journey's working copy lives on this device, so it works offline. One record per
+// learner (siblings can share a tablet), with a nickname and a colour. When a family signs in,
+// sync.ts keeps it in step with their account.
 import { useSyncExternalStore } from "react";
-import { applyResult, dayKey, emptyLearnerData, type LearnerData, type LessonResult, type Outcome } from "./progress";
+import { adoptAccount, forgetAccount, type AccountLearner, type Learner, type LearnerColor, type LearnStore } from "./account-merge";
+import { applyResult, dayKey, emptyLearnerData, normalizeLearnerData, type LearnerData, type LessonResult, type Outcome } from "./progress";
 
+export type { Learner, LearnerColor, LearnStore };
 export const LEARN_KEY = "sabaq:learn";
-
-export type LearnerColor = "mint" | "sky" | "peach" | "lilac" | "sun" | "rose";
-export type Learner = { id: string; name: string; color: LearnerColor };
-
-export type LearnStore = {
-  version: 1;
-  active: string | null;
-  learners: Learner[];
-  data: Record<string, LearnerData>;
-};
 
 const EMPTY: LearnStore = { version: 1, active: null, learners: [], data: {} };
 const listeners = new Set<() => void>();
@@ -62,6 +55,16 @@ export function useLearnStore(): LearnStore | null {
   return useSyncExternalStore(subscribe, read, () => null);
 }
 
+export function readStore(): LearnStore {
+  return read();
+}
+
+export function learnerById(id: string): { learner: Learner; data: LearnerData } | null {
+  const s = read();
+  const learner = s.learners.find((l) => l.id === id);
+  return learner ? { learner, data: normalizeLearnerData(s.data[learner.id]) } : null;
+}
+
 export function activeLearner(s: LearnStore): { learner: Learner; data: LearnerData } | null {
   const learner = s.learners.find((l) => l.id === s.active);
   return learner ? { learner, data: s.data[learner.id] ?? emptyLearnerData() } : null;
@@ -85,7 +88,7 @@ export function switchLearner(id: string) {
   write({ ...read(), active: id });
 }
 
-export function updateLearner(id: string, patch: Partial<Omit<Learner, "id">>) {
+export function updateLearner(id: string, patch: Partial<Pick<Learner, "name" | "color">>) {
   const s = read();
   write({ ...s, learners: s.learners.map((l) => (l.id === id ? { ...l, ...patch, name: (patch.name ?? l.name).trim().slice(0, 20) || l.name } : l)) });
 }
@@ -117,4 +120,22 @@ export function recordResult(result: LessonResult): Outcome | null {
   const outcome = applyResult(a.data, result, dayKey());
   write({ ...s, data: { ...s.data, [a.learner.id]: outcome.data } });
   return outcome;
+}
+
+/** Takes in the signed-in account's learners; returns which learners to upload. */
+export function adoptAccountLearners(accountId: string, remote: AccountLearner[]) {
+  const { store, push, claim } = adoptAccount(read(), accountId, remote, newId);
+  write(store);
+  return { push, claim };
+}
+
+export function linkLearner(id: string, studentId: string, accountId: string) {
+  const s = read();
+  write({ ...s, learners: s.learners.map((l) => (l.id === id ? { ...l, studentId, accountId } : l)) });
+}
+
+export function forgetAccountLearners() {
+  const s = read();
+  const next = forgetAccount(s);
+  if (next !== s) write(next);
 }

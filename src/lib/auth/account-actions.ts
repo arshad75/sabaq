@@ -45,13 +45,6 @@ export async function signInWithPassword(email: string, password: string): Promi
   redirect(account ? accountHome(account) : "/welcome");
 }
 
-export async function sendSignInLink(email: string): Promise<FormState> {
-  const supabase = await createSupabaseServer();
-  // Same reply whether or not the account exists, so the form can't be used to find accounts.
-  await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-  return { status: "sent", email };
-}
-
 export async function requestPasswordReset(_prev: FormState, form: FormData): Promise<FormState> {
   const email = text(form, "email", 200).toLowerCase();
   if (!EMAIL_RE.test(email)) return { status: "error", message: "Enter a valid email address.", email };

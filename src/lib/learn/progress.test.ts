@@ -8,7 +8,9 @@ import {
   isUnlocked,
   lastWeek,
   learnedLetters,
+  mergeLearnerData,
   nextStrength,
+  normalizeLearnerData,
   starsFor,
   streak,
   type LessonResult,
@@ -91,5 +93,26 @@ describe("learning progress", () => {
     expect(w).toHaveLength(7);
     expect(w[0]).toEqual({ day: "2026-10-11", xp: 5 });
     expect(w[6]).toEqual({ day: "2026-10-17", xp: 15 });
+  });
+
+  it("merges two devices' progress without losing either", () => {
+    const tablet = applyResult(emptyLearnerData(), result("u1-1", 7, 10), "2026-10-16").data;
+    const phone = applyResult(applyResult(emptyLearnerData(), result("u1-1"), "2026-10-17").data, result("u1-2"), "2026-10-17").data;
+    const merged = mergeLearnerData({ ...tablet, goal: 30 }, phone);
+    expect(merged.lessons["u1-1"].stars).toBe(3);
+    expect(Object.keys(merged.lessons).sort()).toEqual(["u1-1", "u1-2"]);
+    expect(merged.days).toEqual({ "2026-10-16": tablet.days["2026-10-16"], "2026-10-17": phone.days["2026-10-17"] });
+    expect(merged.xp).toBe(tablet.xp + phone.xp);
+    expect(merged.items.ta.last).toBe("2026-10-17");
+    expect(Object.keys(merged.badges).sort()).toEqual(["first", "perfect"]);
+    expect(merged.badges.first).toBe("2026-10-16");
+    expect(merged.goal).toBe(30);
+    expect(mergeLearnerData(merged, merged)).toEqual(merged);
+  });
+
+  it("repairs missing or malformed saved data", () => {
+    expect(normalizeLearnerData(null)).toEqual(emptyLearnerData());
+    expect(normalizeLearnerData({ xp: -5, goal: 7, days: [1, 2], lessons: "x" })).toEqual(emptyLearnerData());
+    expect(normalizeLearnerData({ xp: 40, goal: 50 }).goal).toBe(50);
   });
 });

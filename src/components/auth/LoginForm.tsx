@@ -11,7 +11,7 @@ import { Banner } from "@/components/ui/States";
 
 type Method = "magic" | "password";
 
-export function LoginForm({ notice }: { notice?: string }) {
+export function LoginForm({ notice, showSignup = true }: { notice?: string; showSignup?: boolean }) {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(logIn, { status: "idle" });
   const [method, setMethod] = useState<Method>(supabaseAuth ? "password" : "magic");
 
@@ -43,16 +43,19 @@ export function LoginForm({ notice }: { notice?: string }) {
       <Field id="email" label="Email">
         <TextInput id="email" name="email" type="email" autoComplete="email" defaultValue={state.email} required />
       </Field>
-      <SegmentedControl<Method>
-        name="method"
-        label="Sign in with"
-        value={method}
-        onChange={setMethod}
-        options={[
-          { value: "password", label: "Password" },
-          { value: "magic", label: "Email link" },
-        ]}
-      />
+      {supabaseAuth && <input type="hidden" name="method" value="password" />}
+      {!supabaseAuth && (
+        <SegmentedControl<Method>
+          name="method"
+          label="Sign in with"
+          value={method}
+          onChange={setMethod}
+          options={[
+            { value: "password", label: "Password" },
+            { value: "magic", label: "Email link" },
+          ]}
+        />
+      )}
       {method === "password" && (
         <Field
           id="password"
@@ -72,12 +75,14 @@ export function LoginForm({ notice }: { notice?: string }) {
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? "Please wait…" : method === "magic" ? "Email me a link" : "Log in"}
       </Button>
-      <p className="text-center text-sm text-muted">
-        New here?{" "}
-        <Link href="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
-          Create an account
-        </Link>
-      </p>
+      {showSignup && (
+        <p className="text-center text-sm text-muted">
+          New here?{" "}
+          <Link href="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
+            Create an account
+          </Link>
+        </p>
+      )}
       <p className="text-center text-sm text-muted">
         {supabaseAuth ? "Child joining a lesson?" : "Student?"}{" "}
         <Link

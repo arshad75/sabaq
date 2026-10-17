@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { ALL_LETTERS, LESSONS, letter } from "@/lib/learn/curriculum";
 import { GOALS, badgesOf, dayKey, lastWeek, masteredCount, strengthOf, streak, type LearnerData } from "@/lib/learn/progress";
 import { removeLearner, resetProgress, setGoal, updateLearner, type Learner } from "@/lib/learn/store";
+import { pushActive, pushLearner, removeRemote, renameRemote } from "@/lib/learn/sync";
 import { setPrefs, usePrefs } from "@/lib/prefs";
 import { speakLetter } from "@/lib/qaida/letters";
 import { BadgeGrid } from "@/components/ui/Friendly";
@@ -18,7 +19,7 @@ const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function BigStat({ icon, value, label, tone }: { icon: IconName; value: string | number; label: string; tone: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border-2 border-border bg-surface p-3">
-      <Icon name={icon} size={28} className={tone} fill={icon === "flame" || icon === "zap" ? "currentColor" : "none"} />
+      <Icon name={icon} size={28} className={tone} fill={icon === "moon" || icon === "spark" ? "currentColor" : "none"} />
       <span>
         <span className="block text-2xl leading-tight font-bold">{value}</span>
         <span className="block text-sm text-muted">{label}</span>
@@ -66,6 +67,7 @@ export function ProfileView({ learner, data, onLearners }: { learner: Learner; d
               onSubmit={(e) => {
                 e.preventDefault();
                 updateLearner(learner.id, { name });
+                void renameRemote(learner.id, name);
                 setEditing(false);
               }}
             >
@@ -93,7 +95,7 @@ export function ProfileView({ learner, data, onLearners }: { learner: Learner; d
             </h1>
           )}
           <p className="flex items-center gap-1.5 text-sm text-muted">
-            <Icon name="shield" size={14} /> Saved on this device only
+            <Icon name="shield" size={14} /> {learner.studentId ? "Saved to your family account" : "Saved on this device only"}
           </p>
         </div>
         <button type="button" onClick={onLearners} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 font-semibold hover:bg-surface-2">
@@ -102,15 +104,15 @@ export function ProfileView({ learner, data, onLearners }: { learner: Learner; d
       </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <BigStat icon="flame" value={streak(data.days, today)} label="Day streak" tone="text-mark-repeat" />
-        <BigStat icon="zap" value={data.xp} label="Total XP" tone="text-star" />
+        <BigStat icon="moon" value={streak(data.days, today)} label="Days in a row" tone="text-mark-slip" />
+        <BigStat icon="spark" value={data.xp} label="Total Noor" tone="text-star" />
         <BigStat icon="check" value={`${done}/${LESSONS.length}`} label="Lessons done" tone="text-success" />
         <BigStat icon="star" value={`${masteredCount(data)}/29`} label="Strong letters" tone="text-primary" />
       </div>
 
       <Card>
-        <CardHeader title="This week" description={`Daily goal: ${data.goal} XP`} />
-        <div className="relative flex h-40 items-end gap-2 sm:gap-4" role="img" aria-label={`XP this week: ${week.map((d) => d.xp).join(", ")}`}>
+        <CardHeader title="This week" description={`Daily goal: ${data.goal} Noor`} />
+        <div className="relative flex h-40 items-end gap-2 sm:gap-4" role="img" aria-label={`Noor this week: ${week.map((d) => d.xp).join(", ")}`}>
           <span aria-hidden className="absolute inset-x-0 border-t-2 border-dashed border-star/60" style={{ bottom: `${(data.goal / top) * 100}%` }} />
           {week.map((d) => (
             <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
@@ -165,12 +167,33 @@ export function ProfileView({ learner, data, onLearners }: { learner: Learner; d
             label="Daily goal"
             value={String(data.goal)}
             options={GOALS.map((g) => ({ value: String(g.xp), label: `${g.label} · ${g.xp}` }))}
-            onChange={(v) => setGoal(Number(v))}
+            onChange={(v) => {
+              setGoal(Number(v));
+              void pushActive();
+            }}
           />
           <Switch id="fx" label="Sound effects" description="Chimes for right answers and a soft tone for mistakes." checked={prefs.effects} onChange={(v) => setPrefs({ effects: v })} />
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
-            <Confirm label="Reset progress" confirm={`Start ${learner.name} from the beginning?`} onConfirm={() => resetProgress(learner.id)} />
-            <Confirm label="Remove learner" confirm={`Remove ${learner.name} from this device?`} onConfirm={() => removeLearner(learner.id)} />
+            <Confirm
+              label="Reset progress"
+              confirm={`Start ${learner.name} from the beginning?`}
+              onConfirm={() => {
+                resetProgress(learner.id);
+                void pushLearner(learner.id);
+              }}
+            />
+            <Confirm
+              label="Remove learner"
+              confirm={
+                learner.studentId
+                  ? `Remove ${learner.name} and all their progress from your account?`
+                  : `Remove ${learner.name} from this device?`
+              }
+              onConfirm={() => {
+                void removeRemote(learner.studentId);
+                removeLearner(learner.id);
+              }}
+            />
           </div>
         </div>
       </Card>

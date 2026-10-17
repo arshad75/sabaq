@@ -48,6 +48,9 @@ const PATHS = {
   zap: "M13 3L5 13h6l-1 8 8-10h-6z",
   shapes: "M7 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M14 14h7v7h-7z M3 21l4-7 4 7z",
   dots: "M12 3.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M6.5 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M17.5 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M4 21h16",
+  moon: "M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z",
+  spark: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z",
+  lantern: "M12 2v2 M9 4h6 M7.5 7h9l-1 11h-7z M7.5 7l1.5-3 M16.5 7L15 4 M10 18v2.5h4V18 M12 10.5v4",
 } as const;
 
 export type IconName = keyof typeof PATHS;

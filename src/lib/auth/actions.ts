@@ -11,7 +11,7 @@ import {
 } from "@/lib/mock/auth";
 import { endSession, getSessionUser, pairTablet, startSession } from "./session";
 import { supabaseAuth } from "./mode";
-import { sendSignInLink, signInWithPassword, signOut } from "./account-actions";
+import { signInWithPassword, signOut } from "./account-actions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOME = { teacher: "/teacher", guardian: "/guardian", student: "/student" } as const;
@@ -23,11 +23,7 @@ export async function logIn(_prev: LoginState, form: FormData): Promise<LoginSta
   const method = form.get("method") === "password" ? "password" : "magic";
   if (!EMAIL_RE.test(email)) return { status: "error", message: "Enter a valid email address.", email };
 
-  if (supabaseAuth) {
-    return method === "magic"
-      ? sendSignInLink(email)
-      : signInWithPassword(email, String(form.get("password") ?? ""));
-  }
+  if (supabaseAuth) return signInWithPassword(email, String(form.get("password") ?? ""));
 
   if (method === "magic") {
     // Same reply whether or not the account exists, so the form can't be used to find accounts.

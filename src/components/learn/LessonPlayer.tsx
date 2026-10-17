@@ -165,11 +165,11 @@ export function LessonPlayer({
         <span
           aria-live="polite"
           className={cn(
-            "inline-flex min-w-16 items-center justify-end gap-1 font-bold text-mark-repeat transition-opacity",
+            "inline-flex min-w-16 items-center justify-end gap-1 font-bold text-star transition-opacity",
             combo >= 3 ? "opacity-100" : "opacity-0",
           )}
         >
-          <Icon name="flame" size={20} /> {combo >= 3 ? `${combo} in a row` : ""}
+          <Icon name="spark" size={20} /> {combo >= 3 ? `${combo} in a row` : ""}
         </span>
       </header>
 
@@ -233,7 +233,7 @@ export function LessonPlayer({
               onClick={check}
               disabled={!selected}
               style={{ "--edge": "color-mix(in srgb, var(--primary) 55%, black)" } as CSSProperties}
-              className="press-3d ml-auto min-h-14 min-w-40 rounded-2xl bg-primary px-8 text-lg font-bold tracking-wide text-primary-fg uppercase disabled:bg-surface-2 disabled:text-muted disabled:shadow-none"
+              className="ml-auto min-h-14 min-w-40 rounded-full bg-primary px-8 text-lg font-semibold text-primary-fg shadow-sm transition hover:brightness-110 disabled:bg-surface-2 disabled:text-muted disabled:shadow-none"
             >
               Check
             </button>
@@ -244,7 +244,7 @@ export function LessonPlayer({
               autoFocus
               style={{ "--edge": `color-mix(in srgb, var(--${status === "wrong" ? "danger" : status === "right" ? "success" : "primary"}) 55%, black)` } as CSSProperties}
               className={cn(
-                "press-3d ml-auto min-h-14 min-w-40 rounded-2xl px-8 text-lg font-bold tracking-wide uppercase",
+                "ml-auto min-h-14 min-w-40 rounded-full px-8 text-lg font-semibold shadow-sm transition hover:brightness-110",
                 status === "wrong" ? "bg-danger text-primary-fg" : status === "right" ? "bg-success text-primary-fg" : "bg-primary text-primary-fg",
               )}
             >
@@ -276,11 +276,11 @@ export function LessonPlayer({
                 autoFocus
                 onClick={() => setQuitting(false)}
                 style={{ "--edge": "color-mix(in srgb, var(--primary) 55%, black)" } as CSSProperties}
-                className="press-3d min-h-14 rounded-2xl bg-primary text-lg font-bold text-primary-fg uppercase"
+                className="min-h-14 rounded-full bg-primary text-lg font-semibold text-primary-fg"
               >
                 Keep learning
               </button>
-              <button type="button" onClick={onQuit} className="min-h-12 rounded-2xl font-bold text-danger uppercase hover:bg-danger-soft">
+              <button type="button" onClick={onQuit} className="min-h-12 rounded-full font-semibold text-danger hover:bg-danger-soft">
                 End lesson
               </button>
             </div>

@@ -20,6 +20,7 @@ test("a parent signs up and asks for a lesson; the admin schedules it with a tea
   await parent.getByRole("button", { name: "Create account" }).click();
   await expect(parent.getByRole("heading", { name: "Assalamu alaikum, Hafsa" })).toBeVisible();
 
+  await parent.getByText("Would you like a live teacher? (optional)").click();
   await parent.getByLabel("Your child’s first name or nickname").fill(child);
   await parent.getByLabel("Which days and times suit you?").fill("Weekday evenings");
   await parent.getByRole("button", { name: "Ask for a first lesson" }).click();

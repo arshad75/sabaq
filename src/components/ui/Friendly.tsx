@@ -79,6 +79,7 @@ const BADGE_BG: Record<Badge["icon"], string> = {
   check: "bg-tile-mint",
   book: "bg-tile-sky",
   target: "bg-tile-lilac",
+  moon: "bg-tile-sky",
 };
 
 export function BadgeGrid({ badges }: { badges: Badge[] }) {

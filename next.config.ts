@@ -1,6 +1,14 @@
+import { existsSync, readdirSync } from "node:fs";
 import type { NextConfig } from "next";
 
+// Only letters whose recording is actually in this build play it; others use the voice fallbacks.
+const lettersDir = "public/audio/letters";
+const recordedLetters = existsSync(lettersDir)
+  ? readdirSync(lettersDir).filter((f) => f.endsWith(".mp3")).map((f) => f.slice(0, -4))
+  : [];
+
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_RECORDED_LETTERS: recordedLetters.join(",") },
   cacheComponents: true,
   partialPrefetching: true,
   // The corner badge covered the reading view's page buttons; errors still show without it.

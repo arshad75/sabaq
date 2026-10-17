@@ -5,8 +5,8 @@ import type { QaidaCell } from "./layout";
 
 export type LetterName = { id: string; en: string; ar: string; glyph: string };
 
-// Ids of letters with a licensed recording in public/audio/letters (record in DATA_LICENSES.md).
-const RECORDED = new Set<string>([]);
+// Letters with a recording in public/audio/letters, found at build time (see next.config.ts).
+const RECORDED = new Set<string>((process.env.NEXT_PUBLIC_RECORDED_LETTERS ?? "").split(",").filter(Boolean));
 
 const withIds = <T extends Record<string, Omit<LetterName, "id">>>(names: T) =>
   Object.fromEntries(Object.entries(names).map(([id, n]) => [id, { id, ...n }])) as {
@@ -120,7 +120,10 @@ export function canSpeakLetters(): boolean {
 export function speakLetter(letter: Pick<LetterName, "id" | "ar">): boolean {
   if (typeof window === "undefined") return false;
   const clipFallback = () => playClip(`/audio/letters/espeak/${letter.id}.mp3`);
-  if (RECORDED.has(letter.id)) return playClip(`/audio/letters/${letter.id}.mp3`, () => speakWithVoice(letter, clipFallback));
+  if (RECORDED.has(letter.id))
+    return playClip(`/audio/letters/${letter.id}.mp3`, () => {
+      if (!speakWithVoice(letter, clipFallback)) clipFallback();
+    });
   if (speakWithVoice(letter, clipFallback)) return true;
   // No Arabic voice on this device: use the generated eSpeak NG clip (scripts/make-letter-audio.sh).
   return clipFallback();

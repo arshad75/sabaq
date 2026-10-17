@@ -7,9 +7,12 @@ import { LessonRequestForm, StartLiveLesson } from "@/components/auth/AccountFor
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge, Card, CardHeader } from "@/components/ui/Card";
 import { Tile, TileGrid } from "@/components/ui/Friendly";
+import { Icon } from "@/components/ui/Icon";
 import { LoadingBlock } from "@/components/ui/States";
 import { BOOK_LABEL } from "@/lib/books";
 import type { Book } from "@/lib/domain/types";
+import { LESSONS } from "@/lib/learn/curriculum";
+import { masteredCount, normalizeLearnerData } from "@/lib/learn/progress";
 import { createSupabaseServer, getAccount } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Home" };
@@ -45,6 +48,10 @@ const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 const pagesLabel = (pages: number[]) =>
   pages.length === 0 ? "no pages" : pages.length === 1 ? `page ${pages[0]}` : `pages ${pages[0]}–${pages.at(-1)}`;
+const lastDay = (days: Record<string, number>) => {
+  const d = Object.keys(days).filter((k) => days[k] > 0).sort().at(-1);
+  return d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "Not yet";
+};
 
 export default function Page() {
   return (
@@ -73,7 +80,7 @@ async function Content() {
   const open = requests.some((r) => r.status === "requested" || r.status === "scheduled");
 
   // RLS scopes all three: a parent sees their children; a teacher sees their approved students.
-  const [{ data: kids }, { data: links }, { data: lessons }] = await Promise.all([
+  const [{ data: kids }, { data: links }, { data: lessons }, { data: journeys }] = await Promise.all([
     supabase.from("students").select("id, nickname").order("created_at").returns<{ id: string; nickname: string }[]>(),
     supabase
       .from("class_members")
@@ -87,7 +94,9 @@ async function Content() {
       .order("started_at", { ascending: false })
       .limit(20)
       .returns<Lesson[]>(),
+    supabase.from("learn_progress").select("student_id, data").returns<{ student_id: string; data: unknown }[]>(),
   ]);
+  const journeyOf = new Map((journeys ?? []).map((j) => [j.student_id, normalizeLearnerData(j.data)]));
   const linkOf = new Map((links ?? []).map((l) => [l.student_id, l.classes]));
   const missing = [...new Set((links ?? []).map((l) => l.classes?.teacher_id).filter((id): id is string => !!id))].filter(
     (id) => !teacherName.has(id),
@@ -101,6 +110,7 @@ async function Content() {
     book: linkOf.get(k.id)?.book ?? ("qaida" as Book),
     teacher: teacherName.get(linkOf.get(k.id)?.teacher_id ?? "") ?? null,
     lessons: (lessons ?? []).filter((l) => l.student_id === k.id),
+    journey: journeyOf.get(k.id),
   }));
 
   return (
@@ -111,9 +121,14 @@ async function Content() {
           {account.role === "teacher"
             ? `${children.length} ${children.length === 1 ? "student" : "students"}. Start a lesson whenever you’re ready.`
             : children.length
-              ? "Here’s how your family’s lessons are going."
-              : "Welcome to Sabaq. Let’s find your child a teacher."}
+              ? "Here’s how your family’s learning is going."
+              : "Welcome to Sabaq. Start your first letter lesson: it takes five minutes."}
         </p>
+        {account.role === "guardian" && (
+          <ButtonLink href="/learn" size="lg" icon="zap" className="mt-5">
+            {children.length ? "Continue the journey" : "Start learning"}
+          </ButtonLink>
+        )}
       </section>
 
       <div className="mt-6">
@@ -123,13 +138,9 @@ async function Content() {
           {account.role === "teacher" ? (
             <Tile href="#quick" icon="target" color="peach" title="Quick lesson" subtitle="For a trial" />
           ) : (
-            <Tile
-              href={children[0] ? `/children/${children[0].id}` : "#ask"}
-              icon="star"
-              color="sun"
-              title={children[0] ? "Stars & badges" : "Find a teacher"}
-              subtitle={children[0] ? children[0].nickname : "Ask for a lesson"}
-            />
+            children[0] && (
+              <Tile href={`/children/${children[0].id}`} icon="star" color="sun" title="Stars & badges" subtitle={children[0].nickname} />
+            )
           )}
           <Tile href="/listen" icon="speech" color="rose" title="Listen" subtitle="Recitation, ayah by ayah" />
           <Tile href="/account/export" download icon="download" color="lilac" title="My data" subtitle="Download a copy" />
@@ -186,15 +197,35 @@ async function Content() {
             <Card key={c.id}>
               <CardHeader
                 title={c.nickname}
-                description={c.teacher ? `${BOOK_LABEL[c.book]} with ${c.teacher}` : "Not linked to a teacher yet"}
+                description={c.teacher ? `${BOOK_LABEL[c.book]} with ${c.teacher}` : "Learning on their own"}
                 action={
-                  <ButtonLink href={`/children/${c.id}`} variant="secondary" icon="chart">
-                    Progress & badges
+                  <ButtonLink href={`/learn#/as/${c.id}`} icon="zap">
+                    Open journey
                   </ButtonLink>
                 }
               />
+              {c.journey && (
+                <dl className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label={`${c.nickname}’s journey`}>
+                  {[
+                    { k: "Noor", v: c.journey.xp },
+                    { k: "Lessons", v: `${Object.keys(c.journey.lessons).length}/${LESSONS.length}` },
+                    { k: "Strong letters", v: `${masteredCount(c.journey)}/29` },
+                    { k: "Last learned", v: lastDay(c.journey.days) },
+                  ].map((s) => (
+                    <div key={s.k} className="rounded-xl bg-surface-2 p-3">
+                      <dt className="text-xs text-muted">{s.k}</dt>
+                      <dd className="text-lg font-semibold">{s.v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              <p className="mb-2 text-sm">
+                <Link href={`/children/${c.id}`} className="font-medium text-primary underline-offset-4 hover:underline">
+                  Progress & badges
+                </Link>
+              </p>
               {c.lessons.length === 0 ? (
-                <p className="text-muted">No lessons saved yet. They’ll appear here after each lesson.</p>
+                <p className="text-sm text-muted">No live lessons with a teacher yet.</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {c.lessons.slice(0, 5).map((l) => (
@@ -248,13 +279,18 @@ async function Content() {
         )}
 
         {account.role === "guardian" && !open && (
-          <Card id="ask" className="scroll-mt-24">
-            <CardHeader
-              title="Ask for a first lesson"
-              description="Tell us a little about your child, and we’ll arrange a lesson with a teacher."
-            />
-            <LessonRequestForm />
-          </Card>
+          <details id="ask" className="group scroll-mt-24 rounded-2xl border border-border bg-surface p-4 sm:p-5">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4">
+              <span>
+                <span className="block text-lg font-semibold">Would you like a live teacher? (optional)</span>
+                <span className="block text-sm text-muted">The letter journey works on its own. Ask here if you’d also like lessons with a teacher.</span>
+              </span>
+              <Icon name="chevronDown" className="shrink-0 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="mt-4">
+              <LessonRequestForm />
+            </div>
+          </details>
         )}
 
         <Card className="flex flex-wrap items-center justify-between gap-4">

@@ -6,7 +6,7 @@ export type LessonForRewards = {
   marks: { page: number; markType: MarkType }[];
 };
 
-export type Badge = { id: string; title: string; description: string; earned: boolean; icon: "star" | "flame" | "check" | "book" | "target" };
+export type Badge = { id: string; title: string; description: string; earned: boolean; icon: "star" | "flame" | "check" | "book" | "target" | "moon" };
 
 const WEEK_MS = 7 * 86_400_000;
 const ERRORS: ReadonlySet<MarkType> = new Set(["repeat", "pronunciation", "tajweed", "slip"]);

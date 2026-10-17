@@ -30,8 +30,52 @@ describe("Qaida letter names", () => {
         pause() {}
       },
     );
-    expect(speakLetter({ id: "ba", ar: "x" })).toBe(true);
-    expect(played).toEqual(["/audio/letters/espeak/ba.mp3"]);
+    expect(speakLetter({ id: "unrecorded", ar: "x" })).toBe(true);
+    expect(played).toEqual(["/audio/letters/espeak/unrecorded.mp3"]);
+    vi.unstubAllGlobals();
+  });
+
+  it("plays the recording first, and falls back to the device voice if it can't load", async () => {
+    vi.stubEnv("NEXT_PUBLIC_RECORDED_LETTERS", "ba,ta");
+    vi.resetModules();
+    const fresh = await import("./letters");
+    const played: string[] = [];
+    const spoken: string[] = [];
+    let fail = false;
+    vi.stubGlobal("window", globalThis);
+    vi.stubGlobal("speechSynthesis", {
+      getVoices: () => [{ lang: "ar-SA", name: "Arabic", localService: true }],
+      speak: (u: { text: string }) => spoken.push(u.text),
+      cancel: () => {},
+      resume: () => {},
+      paused: false,
+      speaking: false,
+      pending: false,
+    });
+    vi.stubGlobal("SpeechSynthesisUtterance", class {
+      constructor(public text: string) {}
+    });
+    vi.stubGlobal(
+      "Audio",
+      class {
+        constructor(public src: string) {}
+        play() {
+          played.push(this.src);
+          return fail ? Promise.reject(new Error("404")) : Promise.resolve();
+        }
+        pause() {}
+      },
+    );
+    expect(fresh.speakLetter({ id: "ba", ar: "باء" })).toBe(true);
+    expect(played).toEqual(["/audio/letters/ba.mp3"]);
+    expect(spoken).toEqual([]);
+
+    fail = true;
+    fresh.speakLetter({ id: "ta", ar: "تاء" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(played).toEqual(["/audio/letters/ba.mp3", "/audio/letters/ta.mp3"]);
+    expect(spoken).toEqual(["تاء"]);
     vi.unstubAllGlobals();
   });
 
@@ -66,10 +110,10 @@ describe("Qaida letter names", () => {
         pause() {}
       },
     );
-    expect(fresh.speakLetter({ id: "dal", ar: "x" })).toBe(true);
+    expect(fresh.speakLetter({ id: "unrecorded", ar: "x" })).toBe(true);
     expect(played).toEqual([]);
     vi.advanceTimersByTime(1000);
-    expect(played).toEqual(["/audio/letters/espeak/dal.mp3"]);
+    expect(played).toEqual(["/audio/letters/espeak/unrecorded.mp3"]);
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });

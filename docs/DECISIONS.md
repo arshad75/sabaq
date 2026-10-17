@@ -201,3 +201,21 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
   screen reader to families, so it was removed everywhere (owner's request). Speech is now limited to
   Arabic letter names (`speakLetter`), plus right/wrong chimes in lessons. `e2e/sounds.spec.ts`
   fails if any screen speaks anything else.
+
+### Open sign-up with Google, and the journey saved to the account (2026-10-18)
+
+- **"Continue with Google" is the way in** (`src/lib/auth/google.ts`, `/auth/callback`). Anyone can join;
+  new Google users get a family (guardian) profile named from their Google name. No lesson request,
+  approval or invite is needed. Email-link sign-in was removed. Email + password remains only as a
+  fallback: shown when `NEXT_PUBLIC_GOOGLE_AUTH` isn't `1`, or at `/login?email=1` (for tests and staff).
+- **The learning journey syncs to the family account.** Each learner is a `students` row; progress lives
+  in `learn_progress` (one jsonb row per learner, RLS: family and the child read/write, a linked teacher
+  reads). The device copy stays the working copy so it works offline; `src/lib/learn/sync.ts` merges on
+  load and on reconnect (best of each lesson, latest view of each letter, union of days and badges).
+  Signing out removes the account's learners from a shared device.
+- Asking for a live teacher is optional and folded away on the family page; the admin flow is unchanged.
+- **Own visual identity for the journey** (not a Duolingo copy): eight-point star (khatam) lessons on a
+  gold thread, arched "stations" with a girih lattice, Noor instead of XP, a crescent for days in a row,
+  lamps instead of stars, rising lights instead of confetti, calm rounded buttons.
+- Letter recordings are only played if the file exists at build time (`next.config.ts`), and
+  `public/audio/letters/*.mp3` is git- and Vercel-ignored until a licence is confirmed.

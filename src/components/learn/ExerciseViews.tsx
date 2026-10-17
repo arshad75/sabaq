@@ -33,7 +33,7 @@ export function SayButton({ id, size = "md", label = "Play the sound again" }: {
       onClick={() => say(id)}
       style={edge("color-mix(in srgb, var(--primary) 55%, black)")}
       className={cn(
-        "press-3d grid shrink-0 place-items-center rounded-2xl bg-primary text-primary-fg hover:brightness-110",
+        "grid shrink-0 place-items-center rounded-full bg-primary shadow-sm transition text-primary-fg hover:brightness-110",
         size === "xl" ? "size-28 rounded-3xl" : "size-14",
       )}
     >
@@ -130,7 +130,7 @@ export function ChoiceView({
               onClick={() => onSelect(o.id)}
               style={edge(optionEdge[state])}
               className={cn(
-                "press-3d relative flex items-center justify-center rounded-2xl border-2 px-4 font-semibold disabled:cursor-default",
+                "relative flex items-center justify-center rounded-2xl border-2 shadow-sm transition hover:-translate-y-0.5 px-4 font-semibold disabled:cursor-default",
                 arabic ? "min-h-28" : "min-h-16 text-xl",
                 optionClass(state),
               )}
@@ -162,7 +162,7 @@ export function IntroView({ ex }: { ex: Of<"intro"> }) {
         onClick={() => say(ex.letter)}
         aria-label={`Hear ${l.en}`}
         style={edge("var(--border)")}
-        className="press-3d mx-auto grid size-56 place-items-center rounded-[2.5rem] border-2 border-border bg-surface hover:bg-surface-2 sm:size-64"
+        className="mx-auto grid size-56 shadow-sm transition place-items-center rounded-[2.5rem] border-2 border-border bg-surface hover:bg-surface-2 sm:size-64"
       >
         <Arabic className="text-[9rem] sm:text-[10rem]">{l.glyph}</Arabic>
       </button>
@@ -237,7 +237,7 @@ export function MatchView({ ex, onDone }: { ex: Of<"match">; onDone: (missed: Le
         onClick={() => choose(side, id)}
         style={edge(optionEdge[state])}
         className={cn(
-          "press-3d flex min-h-16 w-full items-center justify-center rounded-2xl border-2 px-3 font-semibold transition-opacity",
+          "flex min-h-16 w-full items-center justify-center rounded-2xl border-2 shadow-sm transition px-3 font-semibold transition-opacity",
           optionClass(state),
           done && "opacity-40",
         )}

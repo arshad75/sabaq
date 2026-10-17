@@ -166,19 +166,6 @@ body {
   animation: pulse-ring 1.6s ease-out infinite;
 }
 
-@keyframes confetti-fall {
-  0% { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
-  100% { transform: translate3d(var(--drift), 105vh, 0) rotate(720deg); opacity: 0.8; }
-}
-.confetti-piece {
-  position: absolute;
-  top: 0;
-  width: 10px;
-  height: 14px;
-  border-radius: 2px;
-  animation: confetti-fall var(--dur) cubic-bezier(0.2, 0.6, 0.4, 1) var(--delay) both;
-}
-
 /* A chunky "pressable" edge, like a toy button. */
 .press-3d {
   box-shadow: 0 5px 0 var(--edge, var(--border));
@@ -189,6 +176,33 @@ body {
   box-shadow: 0 1px 0 var(--edge, var(--border));
 }
 
+/* Sabaq's journey identity: eight-point star lattice and arched stations. */
+.girih {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.35' stroke-width='1.2'%3E%3Cpath d='M28 8l5.9 14.1L48 28l-14.1 5.9L28 48l-5.9-14.1L8 28l14.1-5.9z'/%3E%3Crect x='14' y='14' width='28' height='28' transform='rotate(45 28 28)'/%3E%3Crect x='14' y='14' width='28' height='28'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 56px 56px;
+}
+.arch {
+  border-radius: 999px 999px 1.5rem 1.5rem / 5.5rem 5.5rem 1.5rem 1.5rem;
+}
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--star) 55%, transparent)); }
+  50% { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--star) 85%, transparent)); }
+}
+.animate-glow {
+  animation: glow-pulse 2.2s ease-in-out infinite;
+}
+@keyframes rise {
+  0% { transform: translate3d(0, 10vh, 0) scale(0.6); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate3d(var(--drift), -100vh, 0) scale(1); opacity: 0; }
+}
+.light-mote {
+  position: absolute;
+  bottom: 0;
+  border-radius: 999px;
+  animation: rise var(--dur) ease-out var(--delay) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -196,7 +210,7 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-  .confetti-piece {
+  .light-mote {
     display: none;
   }
 }

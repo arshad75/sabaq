@@ -5,6 +5,9 @@ import { cn } from "@/lib/cn";
 import { letter } from "@/lib/learn/curriculum";
 import { GOALS, learnedLetters, strengthOf, streak, dayKey, type LearnerData } from "@/lib/learn/progress";
 import { addLearner, switchLearner, type Learner, type LearnerColor, type LearnStore } from "@/lib/learn/store";
+import { claimNewLearners, useSyncState } from "@/lib/learn/sync";
+import { googleAuth, supabaseAuth } from "@/lib/auth/mode";
+import { GoogleButton } from "@/components/auth/GoogleButton";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Mascot } from "./Mascot";
 import { Ring } from "./Ring";
@@ -51,16 +54,16 @@ export function StatsBar({ learner, data, onLearners }: { learner: Learner; data
       </button>
       <div className="flex items-center gap-3 sm:gap-5">
         <span
-          className={cn("inline-flex items-center gap-1 text-lg font-bold", todayXp > 0 ? "text-mark-repeat" : "text-muted")}
+          className={cn("inline-flex items-center gap-1 text-lg font-bold", todayXp > 0 ? "text-mark-slip" : "text-muted")}
           aria-label={`${s} day streak`}
           data-testid="streak"
         >
-          <Icon name="flame" size={24} fill={todayXp > 0 ? "currentColor" : "none"} /> {s}
+          <Icon name="moon" size={24} fill={todayXp > 0 ? "currentColor" : "none"} /> {s}
         </span>
-        <span className="inline-flex items-center gap-1 text-lg font-bold text-star" aria-label={`${data.xp} XP`} data-testid="xp">
-          <Icon name="zap" size={22} fill="currentColor" /> {data.xp}
+        <span className="inline-flex items-center gap-1 text-lg font-bold text-star" aria-label={`${data.xp} Noor`} data-testid="xp">
+          <Icon name="spark" size={22} fill="currentColor" /> {data.xp}
         </span>
-        <Ring value={todayXp} max={data.goal} size={44} stroke={5} label={`${todayXp} of ${data.goal} XP today`}>
+        <Ring value={todayXp} max={data.goal} size={44} stroke={5} label={`${todayXp} of ${data.goal} Noor today`}>
           <Icon name="target" size={18} className={todayXp >= data.goal ? "text-star" : "text-muted"} />
         </Ring>
       </div>
@@ -97,6 +100,44 @@ export function Tabs({ at, go }: { at: "path" | "review" | "me"; go: (path: stri
   );
 }
 
+/** Where the journey is saved: this device, or the family account. */
+export function AccountBar() {
+  const sync = useSyncState();
+  if (!supabaseAuth || sync.status === "idle" || sync.status === "checking") return null;
+  if (sync.status === "guest")
+    return <SignInPrompt />;
+  let line: { icon: IconName; text: string };
+  if (sync.status === "offline")
+    line = { icon: "wifiOff", text: "Offline. Your progress is safe on this device and will be saved when you’re back online." };
+  else if (sync.status === "syncing") line = { icon: "repeat", text: "Saving to your account…" };
+  else if (sync.canSync) line = { icon: "check", text: `Saved to ${sync.accountName}’s account. Pick up on any device.` };
+  else line = { icon: "info", text: "Teacher accounts keep the journey on this device." };
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted" data-testid="sync-status" role="status">
+      <Icon name={line.icon} size={16} className={sync.status === "synced" && sync.canSync ? "text-success" : undefined} />
+      {line.text}
+    </p>
+  );
+}
+
+function SignInPrompt() {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border-2 border-dashed border-border bg-surface p-4 sm:flex-row sm:items-center">
+      <div className="flex-1">
+        <p className="font-semibold">Keep your journey safe</p>
+        <p className="text-sm text-muted">Sign in free to save progress to your family account and carry on from any device.</p>
+      </div>
+      {googleAuth ? (
+        <GoogleButton next="/learn" className="sm:w-72" />
+      ) : (
+        <a href="/login?next=/learn" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-primary px-5 font-semibold text-primary-fg">
+          Sign in
+        </a>
+      )}
+    </div>
+  );
+}
+
 function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState<LearnerColor>("mint");
@@ -107,6 +148,7 @@ function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) 
       onSubmit={(e) => {
         e.preventDefault();
         addLearner(name, color, goal);
+        void claimNewLearners();
         onDone();
       }}
     >
@@ -149,7 +191,7 @@ function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) 
             >
               <input type="radio" name="goal" value={g.xp} checked={goal === g.xp} onChange={() => setGoal(g.xp)} className="sr-only" />
               <span className="font-bold">{g.label}</span>
-              <span className="text-sm text-muted">{g.xp} XP a day</span>
+              <span className="text-sm text-muted">{g.xp} Noor a day</span>
             </label>
           ))}
         </div>
@@ -157,7 +199,7 @@ function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) 
       <button
         type="submit"
         style={{ "--edge": "color-mix(in srgb, var(--primary) 55%, black)" } as CSSProperties}
-        className="press-3d min-h-14 w-full rounded-2xl bg-primary text-lg font-bold tracking-wide text-primary-fg uppercase"
+        className="min-h-14 w-full rounded-full bg-primary text-lg font-semibold text-primary-fg shadow-sm transition hover:brightness-110"
       >
         {first ? "Start learning" : "Add learner"}
       </button>
@@ -166,8 +208,10 @@ function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) 
 }
 
 export function Welcome({ onDone }: { onDone: () => void }) {
+  const sync = useSyncState();
   return (
     <div className="mx-auto max-w-2xl space-y-8">
+      {supabaseAuth && sync.status === "guest" && <SignInPrompt />}
       <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
         <Mascot size={128} className="animate-float" />
         <div>
@@ -183,7 +227,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
           [
             { icon: "volume", t: "Hear every letter", b: "Tap to hear its name" },
             { icon: "book", t: "Use your Qaida", b: "Find letters on real pages" },
-            { icon: "flame", t: "Build a streak", b: "Stars, XP and badges" },
+            { icon: "moon", t: "Grow a crescent", b: "Days in a row, Noor and badges" },
           ] satisfies { icon: IconName; t: string; b: string }[]
         ).map((x) => (
           <li key={x.t} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-3">
@@ -235,10 +279,10 @@ export function LearnersView({ store, onDone }: { store: LearnStore; onDone: () 
                   <span className="block text-xl font-bold">{l.name}</span>
                   <span className="flex gap-3 text-sm text-muted">
                     <span className="inline-flex items-center gap-1">
-                      <Icon name="flame" size={14} /> {d ? streak(d.days, today) : 0}
+                      <Icon name="moon" size={14} /> {d ? streak(d.days, today) : 0}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <Icon name="zap" size={14} /> {d?.xp ?? 0} XP
+                      <Icon name="spark" size={14} /> {d?.xp ?? 0} Noor
                     </span>
                   </span>
                 </span>
@@ -303,9 +347,9 @@ export function ReviewIntro({ data, onStart, onPath }: { data: LearnerData; onSt
         onClick={onStart}
         data-testid="start-review"
         style={{ "--edge": "color-mix(in srgb, var(--primary) 55%, black)" } as CSSProperties}
-        className="press-3d min-h-14 w-full rounded-2xl bg-primary text-lg font-bold tracking-wide text-primary-fg uppercase"
+        className="min-h-14 w-full rounded-full bg-primary text-lg font-semibold text-primary-fg shadow-sm transition hover:brightness-110"
       >
-        Start practice +10 XP
+        Start practice · +10 Noor
       </button>
     </div>
   );
