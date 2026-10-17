@@ -44,6 +44,10 @@ const PATHS = {
   menu: "M4 7h16 M4 12h16 M4 17h16",
   edit: "M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4",
   share: "M12 3v12 M7 8l5-5 5 5 M5 14v6h14v-6",
+  trophy: "M8 4h8v5a4 4 0 0 1-8 0z M8 6H5a3 3 0 0 0 3 4 M16 6h3a3 3 0 0 1-3 4 M12 13v4 M8 21h8 M9 17h6v4H9z",
+  zap: "M13 3L5 13h6l-1 8 8-10h-6z",
+  shapes: "M7 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M14 14h7v7h-7z M3 21l4-7 4 7z",
+  dots: "M12 3.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M6.5 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M17.5 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M4 21h16",
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -109,8 +109,11 @@ export default function Home() {
           child is reading and marks mistakes right on the word, from the other side of the world.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <ButtonLink href="#try" size="lg" icon="target">
-            Try it on this page
+          <ButtonLink href="/learn" size="lg" icon="zap">
+            Start learning, free
+          </ButtonLink>
+          <ButtonLink href="#try" size="lg" variant="secondary" icon="target">
+            Try a live lesson
           </ButtonLink>
           <ButtonLink href="/join" size="lg" variant="secondary" icon="play">
             Join a lesson

@@ -12,7 +12,7 @@ describe("Qaida letter names", () => {
   });
 
   it("never throws, even where speech isn't available", () => {
-    expect(() => speakLetter({ id: "alif", en: "Alif", ar: "x" })).not.toThrow();
+    expect(() => speakLetter({ id: "alif", ar: "x" })).not.toThrow();
   });
 
   it("plays the bundled clip when the device has no Arabic voice", () => {
@@ -30,7 +30,7 @@ describe("Qaida letter names", () => {
         pause() {}
       },
     );
-    expect(speakLetter({ id: "ba", en: "Ba", ar: "x" })).toBe(true);
+    expect(speakLetter({ id: "ba", ar: "x" })).toBe(true);
     expect(played).toEqual(["/audio/letters/espeak/ba.mp3"]);
     vi.unstubAllGlobals();
   });
@@ -66,7 +66,7 @@ describe("Qaida letter names", () => {
         pause() {}
       },
     );
-    expect(fresh.speakLetter({ id: "dal", en: "Dal", ar: "x" })).toBe(true);
+    expect(fresh.speakLetter({ id: "dal", ar: "x" })).toBe(true);
     expect(played).toEqual([]);
     vi.advanceTimersByTime(1000);
     expect(played).toEqual(["/audio/letters/espeak/dal.mp3"]);

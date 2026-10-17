@@ -181,3 +181,19 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 
 `vitest`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`,
 `jsdom`, `@playwright/test`, `prettier`. All are on the agreed stack or directly support it.
+
+### Learning journey (`/learn`)
+
+- **One static page with hash routes** (`#/lesson/u1-1`, `#/review`, `#/me`). The whole journey
+  works offline once the service worker has it, and there is no server state to secure.
+- **Progress stays on the device** (`localStorage` key `sabaq:learn`), one record per learner with
+  a nickname and a colour only. Nothing is sent. Syncing to a child account is a later, opt-in step.
+- **Gentle by design: no hearts.** A wrong answer shows the right one and the question returns at the
+  end of the lesson (at most twice). Stars come from first-try accuracy (95% three, 75% two).
+- **Short vowels are visual only** (read "ba / bi / bu" from the marks). Synthetic voices can't be
+  checked by ear here, so syllable audio waits for teacher recordings.
+- **Only letter-level content.** Lessons use single letters, joining forms (letter + tatweel) and
+  harakat marks from the letter table in `src/lib/qaida/letters.ts`; never Quran text.
+- **Sound effects are synthesised** with Web Audio, so there are no audio assets to licence.
+- Qaida page 2's test rows 6 and 7 are now mapped to letters (box centres checked against the
+  printed 9-column grid; the thin alif in row 6 is not detected, so that box is skipped).

@@ -105,6 +105,13 @@ export function SettingsForm() {
             checked={prefs.buttonVoices}
             onChange={(v) => setPrefs({ buttonVoices: v })}
           />
+          <Switch
+            id="effects"
+            label="Sound effects in lessons"
+            description="A cheerful chime for right answers and a soft tone for mistakes."
+            checked={prefs.effects}
+            onChange={(v) => setPrefs({ effects: v })}
+          />
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="secondary" icon="volume" onClick={() => speakLetter(TEST_LETTER)}>
               Test letter sound

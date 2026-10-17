@@ -1,13 +1,23 @@
 // Sabaq service worker: offline Qaida pages and a few public screens. Signed-in pages,
 // personal data and Supabase traffic are never cached.
-const VERSION = "sabaq-v2";
-const PUBLIC_PAGES = ["/", "/practice", "/join", "/listen"];
+const VERSION = "sabaq-v3";
+const PUBLIC_PAGES = ["/", "/learn", "/practice", "/join", "/listen"];
+// The learning path is one page; these let its lessons work with no connection at all.
+const PRECACHE = [
+  "/learn",
+  "/practice",
+  "/qaida/01.webp",
+  "/qaida/02.webp",
+  ...["alif", "ba", "ta", "tha", "jim", "ha", "kha", "dal", "dhal", "ra", "zay", "sin", "shin", "sad", "dad", "tta", "zza", "ayn", "ghayn", "fa", "qaf", "kaf", "lam", "mim", "nun", "waw", "hha", "hamza", "ya"].map(
+    (id) => `/audio/letters/espeak/${id}.mp3`,
+  ),
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(VERSION)
-      .then((cache) => cache.addAll(["/practice"]))
+      .then((cache) => cache.addAll(PRECACHE))
       .then(() => self.skipWaiting()),
   );
 });

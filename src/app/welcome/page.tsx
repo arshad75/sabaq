@@ -119,6 +119,7 @@ async function Content() {
       <div className="mt-6">
         <TileGrid>
           <Tile href="/join" icon="play" color="mint" title="Join a lesson" subtitle="Enter the teacher’s code" />
+          <Tile href="/learn" icon="zap" color="peach" title="Learn letters" subtitle="Daily lessons for children" />
           {account.role === "teacher" ? (
             <Tile href="#quick" icon="target" color="peach" title="Quick lesson" subtitle="For a trial" />
           ) : (

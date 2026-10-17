@@ -106,6 +106,15 @@ export default function Page() {
             and the teacher’s marks. No audio or video goes through this app.
           </p>
         </Card>
+
+        <Card>
+          <CardHeader title="Letter lessons" />
+          <p>
+            The self-paced letter lessons need no account. Each learner’s nickname, colour, XP, streak and letter
+            progress are saved in the browser on that device only and are never sent to us. Remove a learner from
+            their “Me” page, or clear the site’s data in the browser, to delete it.
+          </p>
+        </Card>
       </div>
     </PublicShell>
   );

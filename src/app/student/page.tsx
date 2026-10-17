@@ -73,6 +73,20 @@ async function Home({ searchParams }: Pick<PageProps<"/student">, "searchParams"
         </Card>
       )}
 
+      <Link
+        href="/learn"
+        className="flex min-h-20 items-center gap-4 rounded-2xl bg-tile-peach p-4 hover:brightness-95"
+      >
+        <span className="grid size-12 place-items-center rounded-xl bg-surface text-primary">
+          <Icon name="zap" size={26} />
+        </span>
+        <span className="flex-1">
+          <span className="block text-xl font-semibold">My letter path</span>
+          <span className="block text-base text-muted">A short lesson with stars and streaks</span>
+        </span>
+        <Icon name="chevronRight" />
+      </Link>
+
       <Card>
         <div className="flex items-center gap-4">
           <span className="grid size-14 place-items-center rounded-full bg-warning-soft text-warning">

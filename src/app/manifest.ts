@@ -14,6 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/apple-icon", sizes: "180x180", type: "image/png" },
     ],
     shortcuts: [
+      { name: "Learn the letters", url: "/learn" },
       { name: "Join a lesson", url: "/join" },
       { name: "Practise the Qaida", url: "/practice" },
     ],

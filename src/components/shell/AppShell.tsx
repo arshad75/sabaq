@@ -94,14 +94,17 @@ export function PublicShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
           <Brand />
           <nav aria-label="Main" className="flex items-center gap-1 text-sm font-medium">
+            <Link href="/learn" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-primary hover:bg-surface-2">
+              <Icon name="zap" size={16} /> Learn
+            </Link>
             <Link href="/practice" className="hidden min-h-11 items-center rounded-xl px-3 hover:bg-surface-2 sm:inline-flex">
               Practise
             </Link>
-            <Link href="/listen" className="hidden min-h-11 items-center rounded-xl px-3 hover:bg-surface-2 sm:inline-flex">
+            <Link href="/listen" className="hidden min-h-11 items-center rounded-xl px-3 hover:bg-surface-2 md:inline-flex">
               Listen
             </Link>
             <Link href="/join" className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2">
-              Join a session
+              Join<span className="hidden sm:inline">&nbsp;a session</span>
             </Link>
             <Link href="/login" className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2">
               Log in

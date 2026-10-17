@@ -17,6 +17,7 @@ export type Prefs = {
   notifySessionSummary: boolean;
   letterSounds: boolean;
   buttonVoices: boolean;
+  effects: boolean;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -28,6 +29,7 @@ export const DEFAULT_PREFS: Prefs = {
   notifySessionSummary: true,
   letterSounds: true,
   buttonVoices: true,
+  effects: true,
 };
 
 const listeners = new Set<() => void>();
