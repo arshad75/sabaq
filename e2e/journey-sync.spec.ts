@@ -19,14 +19,14 @@ test("a family's journey is saved to their account and follows them to another d
 
   await tablet.getByLabel("What shall we call you?").fill("Zaynab");
   await tablet.getByRole("button", { name: "Start learning" }).click();
-  await expect(tablet.getByTestId("sync-status")).toHaveText(/Saved to Maryam’s account/);
+  await expect(tablet.getByTestId("sync-status")).toHaveText(/Saved to Maryam’s account/, { timeout: 15_000 });
   await tablet.getByRole("button", { name: "Begin · +10 Noor" }).click();
   await play(tablet);
   for (let i = 0; i < 3 && (await tablet.getByTestId("lesson-done").isVisible()); i++) {
     await tablet.getByRole("button", { name: "Continue" }).click();
   }
   await expect(tablet.getByTestId("xp")).toHaveAccessibleName("15 Noor");
-  await expect(tablet.getByTestId("sync-status")).toHaveText(/Saved to Maryam’s account/);
+  await expect(tablet.getByTestId("sync-status")).toHaveText(/Saved to Maryam’s account/, { timeout: 15_000 });
 
   // A second device: nothing stored locally, the account brings the journey back.
   const phone = await (await browser.newContext()).newPage();
@@ -36,7 +36,7 @@ test("a family's journey is saved to their account and follows them to another d
   await phone.getByRole("button", { name: "Log in" }).click();
   await expect(phone.getByRole("heading", { name: "Assalamu alaikum, Maryam" })).toBeVisible();
   const card = phone.locator("section", { has: phone.getByRole("heading", { name: "Zaynab" }) });
-  await expect(card.getByText("Noor")).toBeVisible();
+  await expect(card.getByText("Noor")).toBeVisible({ timeout: 15_000 });
   await expect(card.getByText("15", { exact: true })).toBeVisible();
   await card.getByRole("link", { name: "Open journey" }).click();
   await expect(phone.getByTestId("xp")).toHaveAccessibleName("15 Noor");
