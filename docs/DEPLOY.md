@@ -52,9 +52,15 @@ CI runs lint, types, unit tests, build, RLS tests and e2e on every push.
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | publishable key |
    | `SESSION_SECRET` | output of `openssl rand -hex 32` |
+   | `NEXT_PUBLIC_SUPABASE_AUTH` | `1` (real accounts) |
+   | `NEXT_PUBLIC_GOOGLE_AUTH` | `1` once step 5 is done (otherwise email + password is shown) |
 
 3. Deploy. `vercel.json` pins functions to the database's region.
 4. Supabase → **Authentication → URL Configuration**: set Site URL to the Vercel URL.
+5. Google sign-in: in Google Cloud → **Auth → Clients**, create a *Web application* client with
+   origin `https://<your-site>` and redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`,
+   and publish the app (Audience). Paste its ID and secret into Supabase → **Authentication →
+   Providers → Google**, then set `NEXT_PUBLIC_GOOGLE_AUTH=1` and redeploy.
 
 ## 4. Nightly backups
 
