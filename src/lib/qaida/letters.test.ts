@@ -84,11 +84,15 @@ describe("Qaida letter names", () => {
     const fresh = await import("./letters");
     vi.useFakeTimers();
     const played: string[] = [];
+    let pending: { onerror: (() => void) | null } | null = null;
     vi.stubGlobal("window", globalThis);
     vi.stubGlobal("speechSynthesis", {
       getVoices: () => [{ lang: "ar-SA", name: "Arabic", localService: true }],
-      speak: () => {},
-      cancel: () => {},
+      speak: (u: { onerror: (() => void) | null }) => {
+        pending = u;
+      },
+      // Real browsers report a cancelled utterance as an error.
+      cancel: () => pending?.onerror?.(),
       resume: () => {},
       paused: false,
       speaking: false,

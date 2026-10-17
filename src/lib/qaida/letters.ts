@@ -159,17 +159,22 @@ function speakWithVoice(letter: Pick<LetterName, "id" | "ar">, onSilent: () => v
   u.rate = 0.8;
   u.volume = 1;
   let started = false;
+  let fellBack = false;
+  // Cancelling below also fires onerror, so the fallback must only ever run once.
+  const fallBack = () => {
+    if (started || fellBack) return;
+    fellBack = true;
+    onSilent();
+  };
   u.onstart = () => {
     started = true;
   };
-  u.onerror = () => {
-    if (!started) onSilent();
-  };
+  u.onerror = fallBack;
   // Some engines (embedded browsers, voices not yet downloaded) accept speech but never play it.
   watchdog = setTimeout(() => {
     if (started) return;
+    fallBack();
     synth.cancel();
-    onSilent();
   }, SPEECH_START_MS);
   synth.speak(u);
   return true;
