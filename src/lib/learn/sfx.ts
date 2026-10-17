@@ -24,7 +24,7 @@ function tone(freq: number, start: number, length: number, type: OscillatorType 
   osc.stop(t + length + 0.05);
 }
 
-export type Sfx = "right" | "wrong" | "tap" | "finish";
+export type Sfx = "right" | "wrong" | "finish";
 
 export function playSfx(kind: Sfx) {
   switch (kind) {
@@ -35,9 +35,6 @@ export function playSfx(kind: Sfx) {
     case "wrong":
       tone(220, 0, 0.22, "sine", 0.14);
       tone(196, 0.12, 0.3, "sine", 0.12);
-      break;
-    case "tap":
-      tone(660, 0, 0.06, "sine", 0.06);
       break;
     case "finish":
       [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, 0.35, "triangle", 0.16));

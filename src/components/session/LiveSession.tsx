@@ -26,7 +26,6 @@ import { Banner } from "@/components/ui/States";
 import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
 import { ConnectionDot, MarkChip, type ConnectionState } from "@/components/ui/Indicators";
 import { Icon } from "@/components/ui/Icon";
-import { VoiceGuide } from "@/components/audio/VoiceGuide";
 import { TextArea } from "@/components/ui/Form";
 import { ImagePageView } from "@/components/reading/ImagePageView";
 import { FullScreenMessage, JumpTo, PageNavBar, PageSurface, PageTurner, wordRef } from "./parts";
@@ -208,7 +207,6 @@ function StudentEnded({ shared }: { shared: SharedState }) {
   const pages = shared.pages.length;
   return (
     <main id="main" className="grid min-h-dvh place-items-center bg-gradient-to-br from-tile-sun via-tile-mint to-tile-sky p-6">
-      <VoiceGuide />
       <div role="status" className="w-full max-w-md rounded-3xl bg-surface p-8 text-center shadow-xl">
         <div aria-hidden className="mb-4 flex justify-center gap-2">
           {Array.from({ length: Math.min(Math.max(stars, 1), 5) }, (_, i) => (
@@ -367,7 +365,6 @@ function StudentView({
   const go = (p: number) => onPosition(p);
   return (
     <div className="flex h-dvh flex-col bg-bg">
-      <VoiceGuide />
       <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-3 py-2">
         <div className="flex items-center gap-3">
           <span className="text-lg font-semibold tabular-nums">

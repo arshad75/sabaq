@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/shell/AppShell";
-import { VoiceGuide } from "@/components/audio/VoiceGuide";
 import { LearnApp } from "@/components/learn/LearnApp";
 
 export const metadata: Metadata = {
@@ -11,7 +10,6 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <PublicShell>
-      <VoiceGuide />
       <LearnApp />
     </PublicShell>
   );

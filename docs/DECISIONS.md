@@ -197,3 +197,7 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 - **Sound effects are synthesised** with Web Audio, so there are no audio assets to licence.
 - Qaida page 2's test rows 6 and 7 are now mapped to letters (box centres checked against the
   printed 9-column grid; the thin alif in row 6 is not detected, so that box is skipped).
+- **Only the letters being learned make speech.** Reading button and link labels aloud felt like a
+  screen reader to families, so it was removed everywhere (owner's request). Speech is now limited to
+  Arabic letter names (`speakLetter`), plus right/wrong chimes in lessons. `e2e/sounds.spec.ts`
+  fails if any screen speaks anything else.

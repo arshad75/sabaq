@@ -16,7 +16,6 @@ export type Prefs = {
   notifyAssignments: boolean;
   notifySessionSummary: boolean;
   letterSounds: boolean;
-  buttonVoices: boolean;
   effects: boolean;
 };
 
@@ -28,7 +27,6 @@ export const DEFAULT_PREFS: Prefs = {
   notifyAssignments: true,
   notifySessionSummary: true,
   letterSounds: true,
-  buttonVoices: true,
   effects: true,
 };
 

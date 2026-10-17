@@ -106,7 +106,6 @@ export function LessonPlayer({
 
   const select = (id: string) => {
     if (status !== "answering") return;
-    sfx("tap");
     setSelected(id);
   };
 
