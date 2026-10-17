@@ -22,8 +22,8 @@ async function recordSounds(page: Page) {
 
 const sounds = (page: Page) => page.evaluate(() => JSON.parse(sessionStorage.getItem("sounds") ?? "[]") as string[]);
 
-/** Only Arabic letter names may be heard: a device Arabic voice or a bundled letter clip. */
-const isLetter = (s: string) => /^speak:ar/.test(s) || s.startsWith("clip:/audio/letters/");
+/** Only recorded Arabic letter names may be heard; the device's synthetic voice is never used. */
+const isLetter = (s: string) => /^clip:\/audio\/letters\/[a-z]+\.mp3$/.test(s);
 
 test("buttons and links never speak their labels", async ({ page }) => {
   await recordSounds(page);
@@ -58,7 +58,7 @@ test("tapping a letter says its Arabic name, and nothing else", async ({ page })
   await page.waitForTimeout(1200);
   const heard = await sounds(page);
   expect(heard.filter((s) => !isLetter(s))).toEqual([]);
-  expect(heard.some((s) => s.includes("باء") || s.endsWith("/ba.mp3"))).toBe(true);
+  expect(heard).toContain("clip:/audio/letters/ba.mp3");
 });
 
 test("a lesson only ever says the letters being learned", async ({ page }) => {

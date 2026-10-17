@@ -90,7 +90,7 @@ export function SettingsForm() {
       </Card>
 
       <Card>
-        <CardHeader title="Sounds" description="Uses this device’s own voices; nothing is sent anywhere." />
+        <CardHeader title="Sounds" description="Letter names are recorded by a teacher; nothing is sent anywhere." />
         <div className="space-y-4">
           <Switch
             id="letter-sounds"

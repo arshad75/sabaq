@@ -217,5 +217,13 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 - **Own visual identity for the journey** (not a Duolingo copy): eight-point star (khatam) lessons on a
   gold thread, arched "stations" with a girih lattice, Noor instead of XP, a crescent for days in a row,
   lamps instead of stars, rising lights instead of confetti, calm rounded buttons.
-- Letter recordings are only played if the file exists at build time (`next.config.ts`), and
-  `public/audio/letters/*.mp3` is git- and Vercel-ignored until a licence is confirmed.
+- Letter recordings are only played if the file exists at build time (`next.config.ts`).
+
+### Recorded voice only; no robotic speech (2026-10-18)
+
+- Letter names come only from the 29 recordings by Shaykh Jalal in `public/audio/letters/<id>.mp3`
+  (used with the owner's permission, see `docs/DATA_LICENSES.md`). The device's text-to-speech voice,
+  the eSpeak clips and the Azure TTS script were removed: families found them robotic and wrong.
+- If a recording can't play (offline before it was cached), the Qaida page says so instead of speaking
+  with another voice. The service worker precaches all 29 clips. A unit test fails if any letter lacks a
+  recording, and `e2e/sounds.spec.ts` fails if anything other than a recording is heard.

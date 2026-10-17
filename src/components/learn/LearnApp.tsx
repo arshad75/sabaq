@@ -6,7 +6,6 @@ import { buildLesson, buildReview, seeded, type Exercise } from "@/lib/learn/exe
 import { badgesOf, dayKey, isUnlocked, learnedLetters, strengthOf, streak, type LearnerData, type LessonResult, type Outcome } from "@/lib/learn/progress";
 import { activeLearner, recordResult, switchLearner, useLearnStore } from "@/lib/learn/store";
 import { pushActive, syncJourney, watchConnection } from "@/lib/learn/sync";
-import { warmUpLetterVoice } from "@/lib/qaida/letters";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/States";
 import { LessonDone } from "./LessonDone";
@@ -133,7 +132,6 @@ function SidePanel({ data }: { data: LearnerData }) {
 export function LearnApp() {
   const store = useLearnStore();
   const route = useRoute();
-  useEffect(() => warmUpLetterVoice(), []);
   useEffect(() => {
     void syncJourney();
     return watchConnection();

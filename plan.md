@@ -95,6 +95,7 @@ without any manual entry.
 - [x] Lesson player: intro cards, hear/see/name choices, match pairs, tap-the-box on Qaida pages; mistakes return at the end
 - [x] XP, stars, daily goal, day streak, badges, letter strength and weak-letter practice
 - [x] Several learners per device; progress kept on the device only; works offline once loaded
-- [ ] Teacher-recorded letter names and syllables (replace eSpeak clips; add audio to short vowels)
+- [x] Recorded letter names (Shaykh Jalal, used with permission); robotic voices removed
+- [ ] Recorded syllables for short vowels
 - [ ] Optional sync of learning progress to the child's account for parents and teachers (needs table + RLS)
 - [ ] Native-speaker and teacher review of lesson wording and transliteration

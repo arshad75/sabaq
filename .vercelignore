@@ -1,3 +1,2 @@
-# Letter recordings awaiting licence confirmation must never be uploaded (see docs/DATA_LICENSES.md).
+# Raw letter recordings stay local; the trimmed copies in public/audio/letters are deployed.
 /sounds
-/public/audio/letters/*.mp3

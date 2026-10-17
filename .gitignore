@@ -29,9 +29,8 @@
 # source PDFs (derived assets live in public/, see scripts/extract-qaida.py)
 /*.pdf
 
-# letter recordings awaiting licence confirmation (see docs/DATA_LICENSES.md)
+# raw letter recordings; the trimmed copies in public/audio/letters are published (see docs/DATA_LICENSES.md)
 /sounds/
-/public/audio/letters/*.mp3
 
 # debug
 npm-debug.log*

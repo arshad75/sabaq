@@ -1,6 +1,5 @@
-// Letter names for tappable boxes on the Qaida alphabet pages. A recorded clip in
-// public/audio/letters/<id>.mp3 plays when listed in RECORDED; otherwise the device's
-// Arabic text-to-speech voice says the name. Only single-letter names, never Quran text.
+// Letter names for tappable boxes on the Qaida alphabet pages, each played from a recording in
+// public/audio/letters/<id>.mp3. Only single-letter names, never Quran text.
 import type { QaidaCell } from "./layout";
 
 export type LetterName = { id: string; en: string; ar: string; glyph: string };
@@ -84,98 +83,17 @@ export function pagesWithLetterSounds(): number[] {
   return Object.keys(LETTERS).map(Number);
 }
 
-let arabicVoice: SpeechSynthesisVoice | null | undefined;
-
-function findArabicVoice(): SpeechSynthesisVoice | null | undefined {
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length === 0) return undefined; // still loading
-  const arabic = voices.filter((v) => v.lang.toLowerCase().replace("_", "-").startsWith("ar"));
-  // Prefer an on-device voice: network voices can be silent when offline.
-  return arabic.find((v) => v.localService) ?? arabic[0] ?? null;
-}
-
-/** Starts loading the device's voices early; Chrome loads them asynchronously. */
-export function warmUpLetterVoice(onReady?: (hasArabic: boolean) => void): () => void {
-  if (!canSpeakLetters()) {
-    onReady?.(false);
-    return () => {};
-  }
-  const synth = window.speechSynthesis;
-  const check = () => {
-    const v = findArabicVoice();
-    if (v === undefined) return;
-    arabicVoice = v;
-    onReady?.(v !== null);
-  };
-  check();
-  synth.addEventListener("voiceschanged", check);
-  return () => synth.removeEventListener("voiceschanged", check);
-}
-
-export function canSpeakLetters(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
-}
-
-/** Says the letter's Arabic name. Returns false if this device can't make a sound for it. */
-export function speakLetter(letter: Pick<LetterName, "id" | "ar">): boolean {
-  if (typeof window === "undefined") return false;
-  const clipFallback = () => playClip(`/audio/letters/espeak/${letter.id}.mp3`);
-  if (RECORDED.has(letter.id))
-    return playClip(`/audio/letters/${letter.id}.mp3`, () => {
-      if (!speakWithVoice(letter, clipFallback)) clipFallback();
-    });
-  if (speakWithVoice(letter, clipFallback)) return true;
-  // No Arabic voice on this device: use the generated eSpeak NG clip (scripts/make-letter-audio.sh).
-  return clipFallback();
-}
-
 let clip: HTMLAudioElement | null = null;
-let watchdog: ReturnType<typeof setTimeout> | undefined;
-// How long speech may take to start before we assume this device's engine is silent.
-const SPEECH_START_MS = 800;
 
-function playClip(src: string, onFail?: () => void): boolean {
-  if (typeof Audio === "undefined") return false;
+/**
+ * Plays the letter's recorded name. Returns false if there is no recording for it; calls onFail
+ * if the recording can't be played (e.g. offline before it was ever cached).
+ */
+export function speakLetter(letter: Pick<LetterName, "id">, onFail?: () => void): boolean {
+  if (typeof window === "undefined" || typeof Audio === "undefined" || !RECORDED.has(letter.id)) return false;
   clip?.pause();
-  clip = new Audio(src);
+  clip = new Audio(`/audio/letters/${letter.id}.mp3`);
   // Some browsers return nothing from play() instead of a promise.
   void Promise.resolve(clip.play()).catch(() => onFail?.());
-  return true;
-}
-
-function speakWithVoice(letter: Pick<LetterName, "id" | "ar">, onSilent: () => void): boolean {
-  if (!canSpeakLetters()) return false;
-  const synth = window.speechSynthesis;
-  if (arabicVoice === undefined) arabicVoice = findArabicVoice();
-  if (arabicVoice === null) return false;
-  clearTimeout(watchdog);
-  clip?.pause();
-  // Chrome can get stuck paused; cancel() only when something is actually playing.
-  if (synth.paused) synth.resume();
-  if (synth.speaking || synth.pending) synth.cancel();
-  const u = new SpeechSynthesisUtterance(letter.ar);
-  u.lang = arabicVoice?.lang ?? "ar-SA";
-  if (arabicVoice) u.voice = arabicVoice;
-  u.rate = 0.8;
-  u.volume = 1;
-  let started = false;
-  let fellBack = false;
-  // Cancelling below also fires onerror, so the fallback must only ever run once.
-  const fallBack = () => {
-    if (started || fellBack) return;
-    fellBack = true;
-    onSilent();
-  };
-  u.onstart = () => {
-    started = true;
-  };
-  u.onerror = fallBack;
-  // Some engines (embedded browsers, voices not yet downloaded) accept speech but never play it.
-  watchdog = setTimeout(() => {
-    if (started) return;
-    fallBack();
-    synth.cancel();
-  }, SPEECH_START_MS);
-  synth.speak(u);
   return true;
 }

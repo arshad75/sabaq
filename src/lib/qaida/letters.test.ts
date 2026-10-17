@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { letterFor, speakLetter } from "./letters";
+import { ALPHABET, letterFor, speakLetter } from "./letters";
 import { qaidaCells } from "./layout";
 
 describe("Qaida letter names", () => {
@@ -11,114 +13,49 @@ describe("Qaida letter names", () => {
     expect(letterFor(1, { id: "6:4" })?.en).toBe("Ghayn");
   });
 
-  it("never throws, even where speech isn't available", () => {
-    expect(() => speakLetter({ id: "alif", ar: "x" })).not.toThrow();
+  it("has a recording for every letter, since nothing else speaks", () => {
+    const missing = ALPHABET.filter((l) => !existsSync(join(__dirname, "../../../public/audio/letters", `${l.id}.mp3`)));
+    expect(missing.map((l) => l.id)).toEqual([]);
   });
 
-  it("plays the bundled clip when the device has no Arabic voice", () => {
-    const played: string[] = [];
-    vi.stubGlobal("window", globalThis);
-    vi.stubGlobal("speechSynthesis", { getVoices: () => [{ lang: "en-GB", name: "English" }] });
-    vi.stubGlobal(
-      "Audio",
-      class {
-        constructor(public src: string) {}
-        play() {
-          played.push(this.src);
-          return Promise.resolve();
-        }
-        pause() {}
-      },
-    );
-    expect(speakLetter({ id: "unrecorded", ar: "x" })).toBe(true);
-    expect(played).toEqual(["/audio/letters/espeak/unrecorded.mp3"]);
-    vi.unstubAllGlobals();
+  it("never throws, even where audio isn't available", () => {
+    expect(() => speakLetter({ id: "alif" })).not.toThrow();
   });
 
-  it("plays the recording first, and falls back to the device voice if it can't load", async () => {
-    vi.stubEnv("NEXT_PUBLIC_RECORDED_LETTERS", "ba,ta");
+  it("plays only the recording, never the device's voice", async () => {
+    vi.stubEnv("NEXT_PUBLIC_RECORDED_LETTERS", "ba");
     vi.resetModules();
     const fresh = await import("./letters");
     const played: string[] = [];
-    const spoken: string[] = [];
+    const speak = vi.fn();
     let fail = false;
     vi.stubGlobal("window", globalThis);
-    vi.stubGlobal("speechSynthesis", {
-      getVoices: () => [{ lang: "ar-SA", name: "Arabic", localService: true }],
-      speak: (u: { text: string }) => spoken.push(u.text),
-      cancel: () => {},
-      resume: () => {},
-      paused: false,
-      speaking: false,
-      pending: false,
-    });
-    vi.stubGlobal("SpeechSynthesisUtterance", class {
-      constructor(public text: string) {}
-    });
+    vi.stubGlobal("speechSynthesis", { speak, getVoices: () => [] });
     vi.stubGlobal(
       "Audio",
       class {
         constructor(public src: string) {}
         play() {
           played.push(this.src);
-          return fail ? Promise.reject(new Error("404")) : Promise.resolve();
+          return fail ? Promise.reject(new Error("offline")) : Promise.resolve();
         }
         pause() {}
       },
     );
-    expect(fresh.speakLetter({ id: "ba", ar: "باء" })).toBe(true);
+
+    expect(fresh.speakLetter({ id: "ba" })).toBe(true);
     expect(played).toEqual(["/audio/letters/ba.mp3"]);
-    expect(spoken).toEqual([]);
+    expect(fresh.speakLetter({ id: "unrecorded" })).toBe(false);
+    expect(played).toHaveLength(1);
 
     fail = true;
-    fresh.speakLetter({ id: "ta", ar: "تاء" });
+    const onFail = vi.fn();
+    fresh.speakLetter({ id: "ba" }, onFail);
     await Promise.resolve();
     await Promise.resolve();
-    expect(played).toEqual(["/audio/letters/ba.mp3", "/audio/letters/ta.mp3"]);
-    expect(spoken).toEqual(["تاء"]);
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(speak).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
-  });
-
-  it("falls back to the clip when the device's voice accepts speech but never starts", async () => {
-    vi.resetModules();
-    const fresh = await import("./letters");
-    vi.useFakeTimers();
-    const played: string[] = [];
-    let pending: { onerror: (() => void) | null } | null = null;
-    vi.stubGlobal("window", globalThis);
-    vi.stubGlobal("speechSynthesis", {
-      getVoices: () => [{ lang: "ar-SA", name: "Arabic", localService: true }],
-      speak: (u: { onerror: (() => void) | null }) => {
-        pending = u;
-      },
-      // Real browsers report a cancelled utterance as an error.
-      cancel: () => pending?.onerror?.(),
-      resume: () => {},
-      paused: false,
-      speaking: false,
-      pending: false,
-    });
-    vi.stubGlobal("SpeechSynthesisUtterance", class {
-      onstart: (() => void) | null = null;
-      onerror: (() => void) | null = null;
-      constructor(public text: string) {}
-    });
-    vi.stubGlobal(
-      "Audio",
-      class {
-        constructor(public src: string) {}
-        play() {
-          played.push(this.src);
-          return Promise.resolve();
-        }
-        pause() {}
-      },
-    );
-    expect(fresh.speakLetter({ id: "unrecorded", ar: "x" })).toBe(true);
-    expect(played).toEqual([]);
-    vi.advanceTimersByTime(1000);
-    expect(played).toEqual(["/audio/letters/espeak/unrecorded.mp3"]);
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 });

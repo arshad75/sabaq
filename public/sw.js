@@ -1,6 +1,6 @@
 // Sabaq service worker: offline Qaida pages and a few public screens. Signed-in pages,
 // personal data and Supabase traffic are never cached.
-const VERSION = "sabaq-v3";
+const VERSION = "sabaq-v5";
 const PUBLIC_PAGES = ["/", "/learn", "/practice", "/join", "/listen"];
 // The learning path is one page; these let its lessons work with no connection at all.
 const PRECACHE = [
@@ -9,7 +9,7 @@ const PRECACHE = [
   "/qaida/01.webp",
   "/qaida/02.webp",
   ...["alif", "ba", "ta", "tha", "jim", "ha", "kha", "dal", "dhal", "ra", "zay", "sin", "shin", "sad", "dad", "tta", "zza", "ayn", "ghayn", "fa", "qaf", "kaf", "lam", "mim", "nun", "waw", "hha", "hamza", "ya"].map(
-    (id) => `/audio/letters/espeak/${id}.mp3`,
+    (id) => `/audio/letters/${id}.mp3`,
   ),
 ];
 

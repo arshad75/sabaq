@@ -135,6 +135,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
             {QAIDA.attribution.licence}
           </a>
         </p>
+        <p className="mt-1 text-xs">Letter names recorded by Shaykh Jalal, used with permission.</p>
       </footer>
     </div>
   );
