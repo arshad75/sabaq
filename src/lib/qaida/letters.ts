@@ -147,34 +147,114 @@ export function pagesWithLetterSounds(): number[] {
   return [...readings.keys()];
 }
 
-// A short breath between letters when a joined word is spelled out.
-const GAP_MS = 120;
-let playing: { cancelled: boolean; clip?: HTMLAudioElement } | null = null;
+const clipUrl = (id: string) => `/audio/letters/${id}.mp3`;
 
-/**
- * Plays the recorded names one after another. Returns false if any has no recording; calls onFail
- * if a recording can't be played (e.g. offline before it was ever cached). A new call stops the last.
- */
-export function speakLetters(letters: readonly Pick<LetterName, "id">[], onFail?: () => void): boolean {
-  if (typeof window === "undefined" || typeof Audio === "undefined") return false;
-  if (letters.length === 0 || !letters.every((l) => RECORDED.has(l.id))) return false;
-  if (playing) {
-    playing.cancelled = true;
-    playing.clip?.pause();
+// Joined words are spelled in one flow, as a teacher does: each name is trimmed to its voiced
+// part and the next starts straight after, with only a breath between.
+const JOIN_GAP_S = 0.05;
+const FADE_S = 0.008;
+
+let current: { cancelled: boolean; stop: () => void } | null = null;
+let ctx: AudioContext | null = null;
+const buffers = new Map<string, Promise<AudioBuffer>>();
+
+function audioContext(): AudioContext | null {
+  if (typeof window === "undefined" || !("AudioContext" in window)) return null;
+  ctx ??= new AudioContext();
+  // Resuming inside the tap is what lets iPads play the letters that are scheduled later.
+  if (ctx.state === "suspended") void ctx.resume();
+  return ctx;
+}
+
+function loadBuffer(ac: AudioContext, id: string): Promise<AudioBuffer> {
+  let p = buffers.get(id);
+  if (!p) {
+    p = fetch(clipUrl(id))
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${r.status}`))))
+      .then((data) => ac.decodeAudioData(data));
+    p.catch(() => buffers.delete(id));
+    buffers.set(id, p);
   }
-  const run: { cancelled: boolean; clip?: HTMLAudioElement } = { cancelled: false };
-  playing = run;
+  return p;
+}
+
+/** Start and end (seconds) of the voiced part of a clip, ignoring near-silence at either edge. */
+export function voicedRange(samples: Float32Array, sampleRate: number, threshold = 0.02): [number, number] {
+  let a = 0;
+  let b = samples.length - 1;
+  while (a < b && Math.abs(samples[a]) < threshold) a++;
+  while (b > a && Math.abs(samples[b]) < threshold) b--;
+  if (a >= b) return [0, samples.length / sampleRate];
+  return [a / sampleRate, (b + 1) / sampleRate];
+}
+
+function stopCurrent() {
+  if (current) {
+    current.cancelled = true;
+    current.stop();
+  }
+}
+
+function playJoined(ac: AudioContext, ids: string[], onFail?: () => void) {
+  const sources: AudioBufferSourceNode[] = [];
+  const run = { cancelled: false, stop: () => sources.forEach((s) => s.stop()) };
+  current = run;
+  Promise.all(ids.map((id) => loadBuffer(ac, id))).then(
+    (bufs) => {
+      if (run.cancelled) return;
+      let t = ac.currentTime + 0.03;
+      for (const buf of bufs) {
+        const [from, to] = voicedRange(buf.getChannelData(0), buf.sampleRate);
+        const len = to - from;
+        const gain = ac.createGain();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(1, t + FADE_S);
+        gain.gain.setValueAtTime(1, t + len - FADE_S);
+        gain.gain.linearRampToValueAtTime(0, t + len);
+        gain.connect(ac.destination);
+        const src = ac.createBufferSource();
+        src.buffer = buf;
+        src.connect(gain);
+        src.start(t, from, len);
+        sources.push(src);
+        t += len + JOIN_GAP_S;
+      }
+    },
+    () => {
+      if (!run.cancelled) onFail?.();
+    },
+  );
+}
+
+function playClips(ids: string[], onFail?: () => void) {
+  let clip: HTMLAudioElement | undefined;
+  const run = { cancelled: false, stop: () => clip?.pause() };
+  current = run;
   const playAt = (i: number) => {
-    if (run.cancelled || i >= letters.length) return;
-    const clip = new Audio(`/audio/letters/${letters[i].id}.mp3`);
-    run.clip = clip;
-    clip.onended = () => setTimeout(() => playAt(i + 1), GAP_MS);
+    if (run.cancelled || i >= ids.length) return;
+    clip = new Audio(clipUrl(ids[i]));
+    clip.onended = () => playAt(i + 1);
     // Some browsers return nothing from play() instead of a promise.
     void Promise.resolve(clip.play()).catch(() => {
       if (!run.cancelled) onFail?.();
     });
   };
   playAt(0);
+}
+
+/**
+ * Plays the recorded names, a joined word as one flowing phrase. Returns false if any has no
+ * recording; calls onFail if a recording can't be played (e.g. offline before it was ever
+ * cached). A new call stops the last.
+ */
+export function speakLetters(letters: readonly Pick<LetterName, "id">[], onFail?: () => void): boolean {
+  if (typeof window === "undefined" || typeof Audio === "undefined") return false;
+  if (letters.length === 0 || !letters.every((l) => RECORDED.has(l.id))) return false;
+  stopCurrent();
+  const ids = letters.map((l) => l.id);
+  const ac = ids.length > 1 ? audioContext() : null;
+  if (ac) playJoined(ac, ids, onFail);
+  else playClips(ids, onFail);
   return true;
 }
 

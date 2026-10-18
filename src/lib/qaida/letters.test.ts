@@ -1,10 +1,15 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
-import { ALPHABET, letterFor, readingFor, speakLetter } from "./letters";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ALPHABET, letterFor, readingFor, speakLetter, voicedRange } from "./letters";
 import { qaidaCells } from "./layout";
 
 describe("Qaida letter names", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
   it("names every letter box on page 1 except the decorative flower", () => {
     const grid = qaidaCells(1).filter((c) => c.line >= 2);
     const unnamed = grid.filter((c) => !letterFor(1, c)).map((c) => c.id);
@@ -36,6 +41,52 @@ describe("Qaida letter names", () => {
 
   it("never throws, even where audio isn't available", () => {
     expect(() => speakLetter({ id: "alif" })).not.toThrow();
+  });
+
+  it("finds the voiced part of a clip", () => {
+    const s = new Float32Array([0, 0.001, 0.5, -0.4, 0.3, 0.01, 0]);
+    expect(voicedRange(s, 10)).toEqual([0.2, 0.5]);
+    expect(voicedRange(new Float32Array(4), 10)).toEqual([0, 0.4]);
+  });
+
+  it("spells a joined word as one phrase: trimmed names scheduled back to back", async () => {
+    vi.stubEnv("NEXT_PUBLIC_RECORDED_LETTERS", "ya,ta");
+    vi.resetModules();
+    const fresh = await import("./letters");
+    const starts: [number, number, number][] = [];
+    const fetched: string[] = [];
+    // 1 s clips at 10 Hz, voiced from 0.2 s to 0.8 s.
+    const samples = new Float32Array([0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0]);
+    const param = { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() };
+    vi.stubGlobal("window", globalThis);
+    vi.stubGlobal("Audio", class {});
+    vi.stubGlobal("fetch", async (url: string) => {
+      fetched.push(url);
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(1) };
+    });
+    vi.stubGlobal(
+      "AudioContext",
+      class {
+        state = "running";
+        currentTime = 0;
+        destination = {};
+        decodeAudioData = async () => ({ sampleRate: 10, getChannelData: () => samples });
+        createGain = () => ({ gain: param, connect: () => {} });
+        createBufferSource = () => ({
+          connect: () => {},
+          stop: () => {},
+          start: (when: number, from: number, len: number) => starts.push([when, from, len]),
+        });
+      },
+    );
+
+    expect(fresh.speakLetters([{ id: "ya" }, { id: "ta" }])).toBe(true);
+    await vi.waitFor(() => expect(starts).toHaveLength(2));
+    expect(fetched).toEqual(["/audio/letters/ya.mp3", "/audio/letters/ta.mp3"]);
+    const [[t1, from, len], [t2]] = starts;
+    expect(from).toBeCloseTo(0.2);
+    expect(len).toBeCloseTo(0.6);
+    expect(t2 - t1).toBeCloseTo(0.65);
   });
 
   it("plays only the recordings, one letter after another, never the device's voice", async () => {

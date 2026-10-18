@@ -231,3 +231,7 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
   plays Ya, Ta, Lam, as the Qaida is taught. Each box's letters were read from the page images and
   checked box by box (`READINGS` in `src/lib/qaida/letters.ts`). Page 6's test section is Quran
   words and pages 7+ need vowel sounds (ba/bi/bu) we have no recordings for, so they stay silent.
+- **Spelled in one flow, not as a word.** Murakkabat are read by naming each letter in one breath
+  ("Ta Ya Noon" for تين); the word itself isn't pronounced until the harakat lessons. Joined words
+  play through Web Audio: clips are decoded up front, trimmed to their voiced part and scheduled
+  back to back (50 ms apart), which also lets iPads play the later letters after one tap.

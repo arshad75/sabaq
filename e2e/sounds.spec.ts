@@ -17,6 +17,18 @@ async function recordSounds(page: Page) {
       log(`clip:${new URL(this.src).pathname}`);
       return play.call(this);
     };
+    // Joined words are played through Web Audio: log each clip fetched and each piece started.
+    const fetch = window.fetch;
+    window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input instanceof Request ? input.url : input), location.href).pathname;
+      if (path.startsWith("/audio/")) log(`clip:${path}`);
+      return fetch(input, init);
+    };
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (this: AudioBufferSourceNode, ...args: Parameters<typeof start>) {
+      log("start");
+      return start.apply(this, args);
+    };
   });
 }
 
@@ -61,7 +73,7 @@ test("tapping a letter says its Arabic name, and nothing else", async ({ page })
   expect(heard).toContain("clip:/audio/letters/ba.mp3");
 });
 
-test("tapping a joined word spells it out, letter by letter", async ({ page }) => {
+test("tapping a joined word spells it out in one flow", async ({ page }) => {
   await recordSounds(page);
   await page.goto("/practice");
   for (let i = 1; i < 4; i++) await page.getByRole("button", { name: "Next page" }).click();
@@ -70,7 +82,7 @@ test("tapping a joined word spells it out, letter by letter", async ({ page }) =
   await expect(page.getByRole("button", { name: "Hear Ya Ta Lam again" })).toBeVisible();
   await expect
     .poll(() => sounds(page), { timeout: 8000 })
-    .toEqual(["ya", "ta", "lam"].map((id) => `clip:/audio/letters/${id}.mp3`));
+    .toEqual([...["ya", "ta", "lam"].map((id) => `clip:/audio/letters/${id}.mp3`), "start", "start", "start"]);
 });
 
 test("a lesson only ever says the letters being learned", async ({ page }) => {
