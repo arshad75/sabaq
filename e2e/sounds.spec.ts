@@ -61,6 +61,18 @@ test("tapping a letter says its Arabic name, and nothing else", async ({ page })
   expect(heard).toContain("clip:/audio/letters/ba.mp3");
 });
 
+test("tapping a joined word spells it out, letter by letter", async ({ page }) => {
+  await recordSounds(page);
+  await page.goto("/practice");
+  for (let i = 1; i < 4; i++) await page.getByRole("button", { name: "Next page" }).click();
+  await expect(page.getByRole("img", { name: "Noorani Qaida page 4" })).toBeVisible();
+  await page.getByRole("button", { name: "Line 3, word 5" }).click();
+  await expect(page.getByRole("button", { name: "Hear Ya Ta Lam again" })).toBeVisible();
+  await expect
+    .poll(() => sounds(page), { timeout: 8000 })
+    .toEqual(["ya", "ta", "lam"].map((id) => `clip:/audio/letters/${id}.mp3`));
+});
+
 test("a lesson only ever says the letters being learned", async ({ page }) => {
   await recordSounds(page);
   await page.goto("/learn");

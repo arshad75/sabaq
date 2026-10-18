@@ -227,3 +227,7 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 - If a recording can't play (offline before it was cached), the Qaida page says so instead of speaking
   with another voice. The service worker precaches all 29 clips. A unit test fails if any letter lacks a
   recording, and `e2e/sounds.spec.ts` fails if anything other than a recording is heard.
+- **Joined letters are spelled out** on Qaida pages 2 (joined forms) to 6 (murakkabat): tapping يتل
+  plays Ya, Ta, Lam, as the Qaida is taught. Each box's letters were read from the page images and
+  checked box by box (`READINGS` in `src/lib/qaida/letters.ts`). Page 6's test section is Quran
+  words and pages 7+ need vowel sounds (ba/bi/bu) we have no recordings for, so they stay silent.

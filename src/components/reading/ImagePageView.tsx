@@ -10,7 +10,7 @@ import type { PagePoint } from "@/lib/session/events";
 import type { ReadingTheme } from "@/lib/prefs";
 import { Icon } from "@/components/ui/Icon";
 import { cellAt, cellCenter, nearestCell, qaidaCells, type QaidaCell } from "@/lib/qaida/layout";
-import { letterFor, speakLetter, type LetterName } from "@/lib/qaida/letters";
+import { readingFor, speakLetters, type LetterName } from "@/lib/qaida/letters";
 
 export type PagePin = { id: string; point: PagePoint; markType: MarkType; label?: string };
 
@@ -50,7 +50,7 @@ export function ImagePageView({
   onPinTap,
   readingTheme = "paper",
   showCredit = true,
-  speakLetters = false,
+  speakLetters: speakLetterNames = false,
   className,
 }: {
   page: number;
@@ -65,20 +65,20 @@ export function ImagePageView({
   readingTheme?: ReadingTheme;
   /** Only turn off where the page already shows the Qaida credit (CC BY-SA). */
   showCredit?: boolean;
-  /** Say the letter's name when a child taps a letter box (alphabet pages). */
+  /** Say the letter names when a child taps a letter or joined-letter box (Qaida pages 1–6). */
   speakLetters?: boolean;
   className?: string;
 }) {
   const cells = qaidaCells(page);
-  const [spoken, setSpoken] = useState<{ page: number; cell: QaidaCell; letter: LetterName; silent: boolean } | null>(null);
-  const play = (cell: QaidaCell, letter: LetterName) => {
-    const markSilent = () => setSpoken((s) => (s && s.letter.id === letter.id ? { ...s, silent: true } : s));
-    setSpoken({ page, cell, letter, silent: !speakLetter(letter, markSilent) });
+  const [spoken, setSpoken] = useState<{ page: number; cell: QaidaCell; letters: LetterName[]; silent: boolean } | null>(null);
+  const play = (cell: QaidaCell, letters: LetterName[]) => {
+    const markSilent = () => setSpoken((s) => (s && s.letters === letters ? { ...s, silent: true } : s));
+    setSpoken({ page, cell, letters, silent: !speakLetters(letters, markSilent) });
   };
   const sayLetter = (c: QaidaCell) => {
-    const letter = speakLetters ? letterFor(page, c) : undefined;
-    if (!letter) return setSpoken(null);
-    play(c, letter);
+    const letters = speakLetterNames ? readingFor(page, c) : undefined;
+    if (!letters) return setSpoken(null);
+    play(c, letters);
   };
   const handleTap = (e: MouseEvent<HTMLDivElement>) => {
     // With detected word boxes, only the boxes are tappable; free taps are for pages without them.
@@ -233,16 +233,16 @@ export function ImagePageView({
           <button
             key={spoken.cell.id}
             type="button"
-            aria-label={`Hear ${spoken.letter.en} again`}
+            aria-label={`Hear ${spoken.letters.map((l) => l.en).join(" ")} again`}
             className="animate-pop-in absolute z-10 inline-flex min-h-9 -translate-x-1/2 -translate-y-full items-center gap-1.5 rounded-full bg-fg px-3 text-sm font-semibold whitespace-nowrap text-bg shadow-lg hover:brightness-110"
-            style={at({ x: (spoken.cell.x0 + spoken.cell.x1) / 2, y: spoken.cell.y0 })}
+            style={at({ x: Math.min(0.8, Math.max(0.2, (spoken.cell.x0 + spoken.cell.x1) / 2)), y: spoken.cell.y0 })}
             onClick={(e) => {
               e.stopPropagation();
-              play(spoken.cell, spoken.letter);
+              play(spoken.cell, spoken.letters);
             }}
           >
             <Icon name={spoken.silent ? "info" : "volume"} size={16} />
-            {spoken.letter.en}
+            {spoken.letters.map((l) => l.en).join(" · ")}
             {spoken.silent && <span className="font-normal opacity-80">(sound not available offline yet)</span>}
           </button>
         )}

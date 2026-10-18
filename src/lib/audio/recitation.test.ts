@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AYAH_COUNTS, SURAH_NAMES, ayahCount, nextAyah, recitationUrl } from "./recitation";
-import { letterFor, pagesWithLetterSounds } from "@/lib/qaida/letters";
+import { letterFor, pagesWithLetterSounds, readingFor } from "@/lib/qaida/letters";
 import { qaidaCells } from "@/lib/qaida/layout";
 
 describe("recitation", () => {
@@ -27,7 +27,7 @@ describe("Qaida letter sounds", () => {
   it("only names boxes that exist on the page", () => {
     for (const page of pagesWithLetterSounds()) {
       const ids = new Set(qaidaCells(page).map((c) => c.id));
-      const named = qaidaCells(page).filter((c) => letterFor(page, c));
+      const named = qaidaCells(page).filter((c) => readingFor(page, c));
       expect(named.length).toBeGreaterThan(10);
       for (const c of named) expect(ids.has(c.id)).toBe(true);
     }
