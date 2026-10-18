@@ -11,6 +11,9 @@ export async function proxy(request: NextRequest) {
   if (PROTOTYPE_ONLY.some((p) => path === p || path.startsWith(`${p}/`))) {
     return NextResponse.redirect(new URL("/welcome", request.url));
   }
+  // Visitors without a session see the front page without a call to the auth server.
+  const hasSession = request.cookies.getAll().some((c) => /^sb-.+-auth-token/.test(c.name));
+  if (path === "/" && !hasSession) return NextResponse.next();
 
   // Refresh an expiring session and pass the new cookies to both the page and the browser.
   let response = NextResponse.next({ request });
@@ -28,12 +31,19 @@ export async function proxy(request: NextRequest) {
       },
     },
   );
-  await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+  // Signed in, the front page (and the installed app's start page) is the family's home screen.
+  if (path === "/" && data.user) {
+    const home = NextResponse.redirect(new URL("/welcome", request.url));
+    for (const c of response.cookies.getAll()) home.cookies.set(c);
+    return home;
+  }
   return response;
 }
 
 export const config = {
   matcher: [
+    "/",
     "/welcome/:path*",
     "/lessons/:path*",
     "/children/:path*",

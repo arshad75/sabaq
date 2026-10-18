@@ -4,12 +4,14 @@ import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
 import { QAIDA } from "@/lib/books";
 import { Icon } from "@/components/ui/Icon";
-import { AuthNavLink } from "@/components/auth/AuthNavLink";
+import { AuthNavLink, HomeLink } from "@/components/auth/AuthNavLink";
 import { BottomNav, TopNav, type NavItem } from "./Nav";
 
-export function Brand({ href = "/" }: { href?: string }) {
+const BRAND_CLASS = "inline-flex min-h-11 items-center gap-2 font-semibold tracking-tight";
+
+function BrandMark() {
   return (
-    <Link href={href} className="inline-flex min-h-11 items-center gap-2 font-semibold tracking-tight">
+    <>
       <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-primary text-primary-fg">
         <Icon name="book" size={18} />
       </span>
@@ -17,6 +19,14 @@ export function Brand({ href = "/" }: { href?: string }) {
       <span lang="ar" dir="rtl" className="font-arabic text-lg font-normal text-muted">
         {site.nameArabic}
       </span>
+    </>
+  );
+}
+
+export function Brand({ href = "/" }: { href?: string }) {
+  return (
+    <Link href={href} className={BRAND_CLASS}>
+      <BrandMark />
     </Link>
   );
 }
@@ -93,7 +103,9 @@ export function PublicShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-full flex-1 flex-col">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-          <Brand />
+          <HomeLink className={BRAND_CLASS}>
+            <BrandMark />
+          </HomeLink>
           <nav aria-label="Main" className="flex items-center gap-1 text-sm font-medium">
             <Link href="/learn" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-primary hover:bg-surface-2">
               <Icon name="zap" size={16} /> Learn

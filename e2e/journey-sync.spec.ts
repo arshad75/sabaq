@@ -37,6 +37,17 @@ test("a family's journey is saved to their account and follows them to another d
   await expect(tablet.getByTestId("xp")).toHaveAccessibleName("15 Noor");
   await expect(tablet.getByRole("button", { name: /Learning as/ })).toHaveCount(1);
 
+  // The logo and Home always lead back to the family's home screen, and so does the front page.
+  const home = tablet.getByRole("heading", { name: "Assalamu alaikum, Maryam" });
+  await tablet.getByRole("link", { name: /^Sabaq/ }).first().click();
+  await expect(home).toBeVisible();
+  await tablet.goto("/practice");
+  await tablet.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home" }).click();
+  await expect(home).toBeVisible();
+  await tablet.goto("/");
+  await expect(home).toBeVisible();
+  await expect(tablet).toHaveURL(/\/welcome$/);
+
   // A second device: nothing stored locally, the account brings the journey back.
   const phone = await (await browser.newContext()).newPage();
   await phone.goto("/login?email=1");
