@@ -5,7 +5,8 @@ import { lessonById, type Lesson } from "@/lib/learn/curriculum";
 import { buildLesson, buildReview, seeded, type Exercise } from "@/lib/learn/exercises";
 import { badgesOf, dayKey, isUnlocked, learnedLetters, strengthOf, streak, type LearnerData, type LessonResult, type Outcome } from "@/lib/learn/progress";
 import { activeLearner, recordResult, switchLearner, useLearnStore } from "@/lib/learn/store";
-import { pushActive, syncJourney, watchConnection } from "@/lib/learn/sync";
+import { pushActive, syncJourney, useSyncState, watchConnection } from "@/lib/learn/sync";
+import { supabaseAuth } from "@/lib/auth/mode";
 import { Icon } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/States";
 import { LessonDone } from "./LessonDone";
@@ -131,6 +132,7 @@ function SidePanel({ data }: { data: LearnerData }) {
 
 export function LearnApp() {
   const store = useLearnStore();
+  const sync = useSyncState();
   const route = useRoute();
   useEffect(() => {
     void syncJourney();
@@ -147,6 +149,15 @@ export function LearnApp() {
 
   if (!store) return <Skeleton className="h-96 w-full rounded-3xl" />;
   const active = activeLearner(store);
+  // Signed-in families get their journey from the account; don't offer a new one while it loads.
+  const loading = supabaseAuth && (sync.status === "idle" || sync.status === "checking" || (sync.status === "syncing" && sync.canSync));
+  if (!active && loading)
+    return (
+      <div role="status" className="space-y-3">
+        <p className="text-center text-muted">Loading your journey…</p>
+        <Skeleton className="h-96 w-full rounded-3xl" />
+      </div>
+    );
   if (!active) return <Welcome onDone={() => navigate("", true)} />;
   const { learner, data } = active;
 

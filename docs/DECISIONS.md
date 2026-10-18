@@ -214,6 +214,9 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
   load and on reconnect (best of each lesson, latest view of each letter, union of days and badges).
   Signing out removes the account's learners from a shared device.
 - Asking for a live teacher is optional and folded away on the family page; the admin flow is unchanged.
+- **Signed in, the journey is simply there.** A new family account gets its first learner named from
+  the account's first name (rename any time), so there's no nickname form. While the account's journey
+  loads, `/learn` shows a loading state instead of the guest form, so nobody starts a duplicate learner.
 - **Own visual identity for the journey** (not a Duolingo copy): eight-point star (khatam) lessons on a
   gold thread, arched "stations" with a girih lattice, Noor instead of XP, a crescent for days in a row,
   lamps instead of stars, rising lights instead of confetti, calm rounded buttons.

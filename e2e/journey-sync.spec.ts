@@ -17,8 +17,9 @@ test("a family's journey is saved to their account and follows them to another d
   await expect(tablet.getByRole("heading", { name: "Assalamu alaikum, Maryam" })).toBeVisible();
   await tablet.getByRole("link", { name: "Start learning" }).click();
 
-  await tablet.getByLabel("What shall we call you?").fill("Zaynab");
-  await tablet.getByRole("button", { name: "Start learning" }).click();
+  // Signed in, the journey is theirs straight away: named from the account, no nickname form.
+  await expect(tablet.getByRole("button", { name: "Learning as Maryam. Switch learner" })).toBeVisible({ timeout: 15_000 });
+  await expect(tablet.getByLabel("What shall we call you?")).toHaveCount(0);
   await expect(tablet.getByTestId("sync-status")).toHaveText(/Saved to Maryam’s account/, { timeout: 15_000 });
   await tablet.getByRole("button", { name: "Begin · +10 Noor" }).click();
   await play(tablet);
@@ -28,6 +29,14 @@ test("a family's journey is saved to their account and follows them to another d
   await expect(tablet.getByTestId("xp")).toHaveAccessibleName("15 Noor");
   await expect(tablet.getByTestId("sync-status")).toHaveText(/Saved to Maryam’s account/, { timeout: 15_000 });
 
+  // Going to other pages and back keeps the same journey.
+  await tablet.goto("/practice");
+  await tablet.goto("/guardian");
+  await tablet.goto("/learn");
+  await expect(tablet.getByRole("button", { name: "Learning as Maryam. Switch learner" })).toBeVisible();
+  await expect(tablet.getByTestId("xp")).toHaveAccessibleName("15 Noor");
+  await expect(tablet.getByRole("button", { name: /Learning as/ })).toHaveCount(1);
+
   // A second device: nothing stored locally, the account brings the journey back.
   const phone = await (await browser.newContext()).newPage();
   await phone.goto("/login?email=1");
@@ -35,13 +44,17 @@ test("a family's journey is saved to their account and follows them to another d
   await phone.locator("#password").fill("a-good-password");
   await phone.getByRole("button", { name: "Log in" }).click();
   await expect(phone.getByRole("heading", { name: "Assalamu alaikum, Maryam" })).toBeVisible();
-  const card = phone.locator("section", { has: phone.getByRole("heading", { name: "Zaynab" }) });
+  const card = phone.locator("section", { has: phone.getByRole("heading", { name: "Maryam", exact: true }) });
   await expect(card.getByText("Noor")).toBeVisible({ timeout: 15_000 });
   await expect(card.getByText("15", { exact: true })).toBeVisible();
   await card.getByRole("link", { name: "Open journey" }).click();
   await expect(phone.getByTestId("xp")).toHaveAccessibleName("15 Noor");
   await expect(phone.locator('[data-lesson="u1-1"]')).toHaveAttribute("data-state", "done");
   await expect(phone.locator('[data-lesson="u1-2"]')).toHaveAttribute("data-state", "current");
+  // Opening /learn directly on the new device also lands on the journey, never a blank start.
+  await phone.goto("/learn");
+  await expect(phone.getByRole("button", { name: "Learning as Maryam. Switch learner" })).toBeVisible({ timeout: 15_000 });
+  await expect(phone.getByTestId("xp")).toHaveAccessibleName("15 Noor");
 
   // Signing out leaves nothing of the family's journey on a shared device.
   await phone.goto("/account");

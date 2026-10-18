@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { letter } from "@/lib/learn/curriculum";
 import { GOALS, learnedLetters, strengthOf, streak, dayKey, type LearnerData } from "@/lib/learn/progress";
 import { addLearner, switchLearner, type Learner, type LearnerColor, type LearnStore } from "@/lib/learn/store";
-import { claimNewLearners, useSyncState } from "@/lib/learn/sync";
+import { claimNewLearners, firstName, useSyncState } from "@/lib/learn/sync";
 import { googleAuth, supabaseAuth } from "@/lib/auth/mode";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -139,7 +139,9 @@ function SignInPrompt() {
 }
 
 function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) {
-  const [name, setName] = useState("");
+  const sync = useSyncState();
+  const signedIn = sync.status === "syncing" || sync.status === "synced";
+  const [name, setName] = useState(first && signedIn ? firstName(sync.accountName) : "");
   const [color, setColor] = useState<LearnerColor>("mint");
   const [goal, setGoal] = useState(20);
   return (
@@ -165,7 +167,9 @@ function LearnerForm({ first, onDone }: { first: boolean; onDone: () => void }) 
           placeholder="A nickname, like Sara"
           className="min-h-14 w-full rounded-2xl border-2 border-border bg-surface px-4 text-lg"
         />
-        <p className="text-sm text-muted">A nickname is plenty. It stays on this device.</p>
+        <p className="text-sm text-muted">
+          {signedIn && sync.canSync ? "A nickname is plenty. Saved to your family account." : "A nickname is plenty. It stays on this device."}
+        </p>
       </div>
       <fieldset>
         <legend className="mb-2 text-lg font-semibold">Pick a colour</legend>
@@ -245,7 +249,12 @@ export function Welcome({ onDone }: { onDone: () => void }) {
         <LearnerForm first onDone={onDone} />
       </div>
       <p className="flex items-center justify-center gap-2 text-sm text-muted">
-        <Icon name="shield" size={16} /> No account needed. Progress is saved on this device only and never sent anywhere.
+        <Icon name="shield" size={16} />
+        {sync.status === "synced" && sync.canSync
+          ? `Saved to ${sync.accountName}’s account, so you can carry on from any device.`
+          : sync.status === "synced"
+            ? "Teacher accounts keep the journey on this device."
+            : "No account needed. Progress is saved on this device only and never sent anywhere."}
       </p>
     </div>
   );

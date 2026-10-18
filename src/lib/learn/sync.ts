@@ -11,7 +11,9 @@ import {
   renameJourneyLearner,
   saveJourneyProgress,
 } from "./journey-actions";
-import { adoptAccountLearners, forgetAccountLearners, learnerById, linkLearner, readStore } from "./store";
+import { addLearner, adoptAccountLearners, forgetAccountLearners, learnerById, linkLearner, readStore } from "./store";
+
+export const firstName = (name: string) => name.trim().split(/\s+/)[0]?.slice(0, 20) || "Learner";
 
 type Signed = { accountName: string; canSync: boolean };
 export type SyncState =
@@ -59,6 +61,8 @@ async function run() {
     }
     set({ status: "syncing", accountName: j.accountName, canSync: j.canSync });
     if (j.canSync) {
+      // A new family starts straight on the path, named after the account; it can be renamed.
+      if (j.learners.length === 0 && readStore().learners.length === 0) addLearner(firstName(j.accountName), "mint", 20);
       const { push, claim } = adoptAccountLearners(j.accountId, j.learners);
       for (const id of claim) {
         const l = learnerById(id);
