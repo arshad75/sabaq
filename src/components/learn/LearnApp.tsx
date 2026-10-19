@@ -260,7 +260,7 @@ export function LearnApp() {
   const tab = page === "review" ? "review" : page === "me" ? "me" : "path";
   return (
     <div className="space-y-5">
-      <div className="sticky top-0 z-30 -mx-4 space-y-3 bg-bg/95 px-4 pt-2 pb-3 backdrop-blur">
+      <div className="material-bg edge-below sticky top-0 z-30 -mx-4 space-y-3 px-4 pt-2 pb-3">
         <StatsBar learner={learner} data={data} onLearners={() => navigate("learners")} />
         <Tabs at={tab} go={navigate} />
       </div>

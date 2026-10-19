@@ -70,7 +70,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Which books can we read?",
-    a: "The Noorani Qaida today. Quran pages come next, from a verified text source; we never type the text ourselves.",
+    a: "The Noorani Qaida in live lessons. At home, children can practise the Qaida, learn their first surahs word by word, and listen to any surah with translation and tafsir. Quran text comes from Quran Foundation (Quran.com); we never type it ourselves.",
   },
   {
     q: "Who runs Sabaq? Is there a catch?",
@@ -101,7 +101,7 @@ export default function Home() {
         <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary">
           <Icon name="shield" size={16} /> Open source · free for every family
         </p>
-        <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+        <h1 className="mx-auto max-w-3xl text-[clamp(2.25rem,6vw,4rem)] leading-[1.05] font-semibold tracking-[-0.03em] text-balance">
           Read together, <span className="text-primary">even when you’re apart.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-pretty text-muted">
@@ -112,22 +112,24 @@ export default function Home() {
           <ButtonLink href="/learn" size="lg" icon="zap">
             Start learning, free
           </ButtonLink>
-          <ButtonLink href="#try" size="lg" variant="secondary" icon="target">
-            Try a live lesson
-          </ButtonLink>
           <ButtonLink href="/join" size="lg" variant="secondary" icon="play">
             Join a lesson
           </ButtonLink>
         </div>
         <p className="mt-5 text-sm text-muted">
-          Or on your own:{" "}
+          Or{" "}
+          <Link href="#try" className="font-medium text-primary underline-offset-4 hover:underline">
+            try a live lesson here
+          </Link>
+          ,{" "}
           <Link href="/practice" className="font-medium text-primary underline-offset-4 hover:underline">
             practise the Qaida
           </Link>{" "}
-          ·{" "}
+          or{" "}
           <Link href="/listen" className="font-medium text-primary underline-offset-4 hover:underline">
-            listen to a recitation
+            listen and read along
           </Link>
+          .
         </p>
       </section>
 
@@ -153,7 +155,7 @@ export default function Home() {
         </p>
         <ul className="mt-6 grid gap-4 md:grid-cols-3">
           {WHY.map((w) => (
-            <li key={w.problem} className="rounded-2xl border border-border bg-surface p-6">
+            <li key={w.problem} className="rounded-2xl border border-border/70 bg-surface p-6 shadow-card">
               <span className="mb-4 grid size-11 place-items-center rounded-xl bg-primary-soft text-primary">
                 <Icon name={w.icon} />
               </span>
@@ -181,7 +183,7 @@ export default function Home() {
             </li>
           ))}
         </ol>
-        <div className="mt-8 rounded-2xl border border-border bg-surface p-5">
+        <div className="mt-8 rounded-2xl border border-border/70 bg-surface p-5 shadow-card">
           <p className="mb-3 font-medium">Five kinds of feedback, each with its own colour and symbol:</p>
           <MarkLegend />
         </div>
@@ -189,7 +191,7 @@ export default function Home() {
 
       <section aria-label="Who it’s for" className="grid gap-4 py-14 md:grid-cols-2">
         {AUDIENCES.map((a) => (
-          <div key={a.title} className="rounded-2xl border border-border bg-surface p-6">
+          <div key={a.title} className="rounded-2xl border border-border/70 bg-surface p-6 shadow-card">
             <h2 className="flex items-center gap-2 text-xl font-semibold">
               <Icon name={a.icon} className="text-primary" /> {a.title}
             </h2>
@@ -219,7 +221,7 @@ export default function Home() {
         <p className="mt-4 text-sm opacity-80">Already have a teacher? They can invite you instead.</p>
       </section>
 
-      <section aria-labelledby="privacy" className="mt-14 rounded-2xl border border-border bg-surface p-6">
+      <section aria-labelledby="privacy" className="mt-14 rounded-2xl border border-border/70 bg-surface p-6 shadow-card">
         <h2 id="privacy" className="flex items-center gap-2 text-xl font-semibold">
           <Icon name="shield" className="text-primary" /> Built for children’s privacy
         </h2>
@@ -241,7 +243,7 @@ export default function Home() {
         <h2 id="faq" className="text-3xl font-semibold tracking-tight">
           Questions families ask
         </h2>
-        <div className="mt-6 divide-y divide-border rounded-2xl border border-border bg-surface">
+        <div className="mt-6 divide-y divide-border/70 rounded-2xl border border-border/70 bg-surface shadow-card">
           {FAQ.map((f) => (
             <details key={f.q} className="group p-5">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 font-medium">

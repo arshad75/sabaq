@@ -51,7 +51,7 @@ function NavList({ items, variant, pathname }: { items: NavItem[]; variant: Vari
           >
             <span
               className={cn(
-                "grid h-7 w-14 place-items-center rounded-full transition-colors",
+                "grid h-7 w-14 place-items-center rounded-full transition-colors duration-300",
                 isActive(item, pathname) && "bg-primary-soft",
               )}
             >
@@ -91,7 +91,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
     <nav
       aria-label="Main"
       data-bottom-nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="material edge-above fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ResponsiveNavList items={items} variant="bottom" />
     </nav>

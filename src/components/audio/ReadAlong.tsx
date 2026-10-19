@@ -164,7 +164,7 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
         </Field>
       </div>
 
-      <div className="sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-2 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
+      <div className="material edge-below sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-2 px-4 py-3 sm:-mx-5 sm:px-5">
         <Button icon={playing ? "x" : "play"} onClick={() => (playing ? pause() : start())} aria-live="polite">
           {status === "loading" && playing ? "Loading…" : playing ? "Pause" : status === "paused" ? "Resume" : "Play"}
         </Button>

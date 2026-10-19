@@ -178,7 +178,7 @@ export function LessonPlayer({
           aria-valuenow={progress}
           className="h-4 flex-1 overflow-hidden rounded-full bg-surface-2"
         >
-          <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(4, progress)}%` }}>
+          <div className="h-full rounded-full bg-primary transition-[width] duration-600 ease-spring" style={{ width: `${Math.max(4, progress)}%` }}>
             <div className="mx-2 mt-1 h-1 rounded-full bg-white/30" />
           </div>
         </div>
@@ -193,7 +193,7 @@ export function LessonPlayer({
         </span>
       </header>
 
-      <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center-safe overflow-y-auto px-4 py-6" key={ex.key}>
+      <main className="animate-enter mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center-safe overflow-y-auto px-4 py-6" key={ex.key}>
         {ex.kind === "intro" && <IntroView ex={ex} />}
         {ex.kind === "tip" && <TipView ex={ex} />}
         {ex.kind === "choice" && <ChoiceView ex={ex} status={status} selected={selected} onSelect={select} />}
@@ -289,7 +289,7 @@ export function LessonPlayer({
       </footer>
 
       {quitting && (
-        <div className="fixed inset-0 z-50 grid place-items-end bg-black/40 sm:place-items-center" onClick={() => setQuitting(false)}>
+        <div className="animate-fade-in fixed inset-0 z-50 grid place-items-end bg-black/40 sm:place-items-center" onClick={() => setQuitting(false)}>
           <div
             role="alertdialog"
             aria-modal="true"

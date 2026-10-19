@@ -49,7 +49,7 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
+      <header className="material edge-below sticky top-0 z-30">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
           <Brand href={homeHref} />
           <TopNav items={nav} />
@@ -82,7 +82,7 @@ export function AppShell({
 export function SimpleShell({ children, backHref, backLabel }: { children: ReactNode; backHref?: string; backLabel?: string }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-border bg-surface">
+      <header>
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <Brand />
           {backHref && (
@@ -102,7 +102,7 @@ export function SimpleShell({ children, backHref, backLabel }: { children: React
 export function PublicShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-border bg-surface">
+      <header>
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
           <HomeLink className={BRAND_CLASS}>
             <BrandMark />
@@ -113,7 +113,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
       <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         {children}
       </main>
-      <footer className="border-t border-border py-6 text-center text-sm text-muted">
+      <footer className="mx-auto w-full max-w-5xl border-t border-border/60 px-4 py-6 text-center text-sm text-muted">
         <nav aria-label="Footer" className="flex justify-center gap-4">
           <Link href="/privacy" className="underline-offset-4 hover:underline">
             Privacy

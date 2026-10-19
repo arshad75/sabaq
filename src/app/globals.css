@@ -103,6 +103,51 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   /* System-only stand-in until a licensed Quranic font is chosen in M1. */
   --font-arabic: "Geeza Pro", "Noto Naskh Arabic", "Arabic Typesetting", "Traditional Arabic", serif;
+
+  /* Springs sampled from the physics: critically damped with a 0.4 s response for anything that
+     just moves; damping 0.8 with a 0.3 s response for sheets and things that arrive. */
+  --ease-spring: linear(0, 0.0596, 0.186, 0.3294, 0.4656, 0.584, 0.6819, 0.7601, 0.821, 0.8677, 0.9029, 0.9292, 0.9487, 0.963, 0.9734, 0.9809, 0.9864, 0.9903, 0.9931, 0.9951, 0.9966, 0.9976, 0.9983, 0.9988, 1);
+  --ease-sheet: linear(0, 0.0753, 0.2375, 0.421, 0.5904, 0.73, 0.8358, 0.9106, 0.9599, 0.9898, 1.0061, 1.0133, 1.0152, 1.014, 1.0116, 1.0088, 1.0062, 1.0041, 1.0025, 1.0014, 1.0006, 1.0002, 0.9999, 0.9998, 1);
+
+  --shadow-card: 0 1px 2px light-dark(rgb(28 27 25 / 0.05), rgb(0 0 0 / 0.3)), 0 6px 20px -10px light-dark(rgb(28 27 25 / 0.12), rgb(0 0 0 / 0.5));
+  --shadow-raised: 0 2px 4px light-dark(rgb(28 27 25 / 0.06), rgb(0 0 0 / 0.35)), 0 18px 40px -16px light-dark(rgb(28 27 25 / 0.22), rgb(0 0 0 / 0.6));
+}
+
+@layer base {
+  body {
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tracking tightens as type grows; body text keeps the font's own spacing. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.012em;
+  }
+  h1 {
+    letter-spacing: -0.022em;
+  }
+  p,
+  li {
+    text-wrap: pretty;
+  }
+  /* Letter-spacing would pull joined Arabic letters apart. */
+  [lang="ar"],
+  [dir="rtl"] {
+    letter-spacing: 0;
+  }
+
+  /* Feedback the instant a finger lands, not when it lifts. */
+  :is(button, a, summary, [role="button"]) {
+    transition: scale 120ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :is(button, a, summary, [role="button"]):not(:disabled, [aria-disabled="true"]):active {
+    scale: 0.97;
+    transition-duration: 60ms;
+  }
 }
 
 html {
@@ -137,13 +182,11 @@ body {
 }
 
 @keyframes pop-in {
-  0% { transform: scale(0.4) rotate(-12deg); opacity: 0; }
-  70% { transform: scale(1.15) rotate(4deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); }
+  from { scale: 0.5; opacity: 0; }
 }
 
 .animate-pop-in {
-  animation: pop-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation: pop-in 0.5s var(--ease-sheet) both;
 }
 
 /* Learning journey */
@@ -168,17 +211,73 @@ body {
 
 @keyframes slide-up {
   from { transform: translateY(100%); }
-  to { transform: translateY(0); }
 }
 .animate-slide-up {
-  animation: slide-up 0.22s ease-out both;
+  animation: slide-up 0.5s var(--ease-sheet) both;
+}
+
+/* The next step arrives from the side the child is moving towards. */
+@keyframes enter {
+  from { opacity: 0; translate: 1.5rem 0; }
+}
+.animate-enter {
+  animation: enter 0.6s var(--ease-spring) both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+/* Translucent chrome: content scrolls underneath, the bar keeps its place. */
+.material {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+.material-bg {
+  background: color-mix(in srgb, var(--bg) 76%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+/* A soft shade where content meets a floating bar, instead of a hard rule. */
+.edge-below::after,
+.edge-above::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 0.75rem;
+  pointer-events: none;
+}
+.edge-below::after {
+  top: 100%;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--fg) 7%, transparent), transparent);
+}
+.edge-above::before {
+  bottom: 100%;
+  background: linear-gradient(to top, color-mix(in srgb, var(--fg) 6%, transparent), transparent);
+}
+/* Only once something has scrolled under the top bar. */
+@keyframes edge-show {
+  from { opacity: 0; }
+}
+@supports (animation-timeline: scroll()) {
+  .edge-below::after {
+    animation: edge-show linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 2rem;
+  }
 }
 
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent); }
+  0% { box-shadow: 0 0 0 0 var(--pulse-color); }
   100% { box-shadow: 0 0 0 20px transparent; }
 }
 .animate-pulse-ring {
+  /* color-mix() inside @keyframes trips the CSS minifier, so mix it here. */
+  --pulse-color: color-mix(in srgb, var(--primary) 45%, transparent);
   animation: pulse-ring 1.6s ease-out infinite;
 }
 
@@ -227,6 +326,43 @@ body {
     transition-duration: 0.01ms !important;
   }
   .light-mote {
+    display: none;
+  }
+  /* Arrivals still read as arrivals, as a short cross-fade instead of movement. */
+  .animate-slide-up,
+  .animate-enter,
+  .animate-pop-in {
+    animation: fade-in 0.2s ease-out both !important;
+  }
+  :is(button, a, summary, [role="button"]):active {
+    scale: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .material {
+    background: var(--surface);
+  }
+  .material-bg {
+    background: var(--bg);
+  }
+  .material,
+  .material-bg {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .material,
+  .material-bg {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 1px 0 var(--fg);
+  }
+  .edge-below::after,
+  .edge-above::before {
     display: none;
   }
 }

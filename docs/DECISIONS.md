@@ -281,3 +281,21 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 - Not graded on pronunciation: saying the ayah is the child's own step ("I said it"); the teacher
   hears them in live sessions. Word meanings and finding letters inside words are left for later,
   after teacher review.
+
+### Design pass: Apple-style feel, CSS only (2026-10-19)
+
+Following `Skills/design_skills.md`, without adding a motion library:
+
+- **Press feedback on touch-down** for every button and link (scale 0.97, 60 ms), released smoothly.
+- **Springs, not fixed curves**: `ease-spring` (critically damped, 0.4 s response) and `ease-sheet`
+  (damping 0.8, 0.3 s) are CSS `linear()` curves sampled from the spring equations. Sheets, the lesson
+  progress bar and each new lesson step use them; a new step arrives from the side the child moves to.
+- **Translucent chrome**: app headers, the tab bar and the Learn/Listen sticky bars are blurred
+  materials that content scrolls under, with a soft shade at the edge (shown only once content is
+  underneath) instead of a hard border.
+- **Type**: tighter tracking on headings (never on Arabic, where it would split joined letters),
+  balanced headings, a fluid display headline on the landing page; cards get a soft two-layer shadow.
+- **Simpler landing**: one primary action (Start learning) and one secondary (Join a lesson); the rest
+  are text links.
+- **Preferences respected**: reduced motion turns movement into short cross-fades and drops the
+  press scale; reduced transparency and increased contrast make the bars solid.

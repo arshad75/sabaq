@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 import { Icon, type IconName } from "./Icon";
 
 export function Card({ className, ...rest }: ComponentProps<"section">) {
-  return <section className={cn("rounded-2xl border border-border bg-surface p-4 sm:p-5", className)} {...rest} />;
+  return <section className={cn("rounded-2xl border border-border/70 bg-surface p-4 shadow-card sm:p-5", className)} {...rest} />;
 }
 
 export function CardHeader({

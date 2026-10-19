@@ -10,7 +10,7 @@ export function AccountShell({ account, children }: { account: Account; children
   const nav = accountNav(account.isAdmin);
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
+      <header className="material edge-below sticky top-0 z-30">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-2 px-4">
           <Brand href="/welcome" />
           <TopNav items={nav} />
