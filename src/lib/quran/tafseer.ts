@@ -31,13 +31,12 @@ export function parseTafseerRef(id: unknown, surah: unknown, ayah: unknown): { i
 }
 
 const UPSTREAM = "http://api.quran-tafseer.com/tafseer";
-const MAX_CHARS = 60_000;
 
-/** The tafseer text for one ayah, or null if the source has none. Throws if the source is down. */
+/** The tafseer text for one ayah exactly as the source sends it, or null if it has none. Throws if the source is down. */
 export async function fetchTafseer(id: number, surah: number, ayah: number): Promise<string | null> {
   const res = await fetch(`${UPSTREAM}/${id}/${surah}/${ayah}`, { signal: AbortSignal.timeout(8000) });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Tafseer source returned ${res.status}`);
   const body = (await res.json()) as { text?: unknown };
-  return typeof body.text === "string" ? body.text.trim().slice(0, MAX_CHARS) : null;
+  return typeof body.text === "string" ? body.text : null;
 }

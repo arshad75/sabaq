@@ -19,14 +19,15 @@ describe("tafseer", () => {
     for (const t of TAFSEERS) expect(t.name + t.author).toMatch(/^[\x20-\x7E]+$/);
   });
 
-  it("returns the text, null when there is none, and throws when the source is down", async () => {
+  it("returns the source's text unchanged, null when there is none, and throws when the source is down", async () => {
     const calls: string[] = [];
-    let reply: Response = Response.json({ text: "  This is the Book.  " });
+    const placeholder = "  [[PLACEHOLDER: not real tafseer]]\n";
+    let reply: Response = Response.json({ text: placeholder });
     vi.stubGlobal("fetch", async (url: string) => {
       calls.push(url);
       return reply;
     });
-    expect(await fetchTafseer(10, 2, 2)).toBe("This is the Book.");
+    expect(await fetchTafseer(10, 2, 2)).toBe(placeholder);
     expect(calls).toEqual(["http://api.quran-tafseer.com/tafseer/10/2/2"]);
     reply = new Response("", { status: 404 });
     expect(await fetchTafseer(10, 2, 2)).toBeNull();

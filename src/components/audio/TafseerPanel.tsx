@@ -133,7 +133,7 @@ export function TafseerPanel({ surah, ayah }: { surah: number; ayah: number }) {
                 dir={tafseer.lang === "ar" ? "rtl" : "ltr"}
                 data-testid="tafseer-text"
                 className={cn(
-                  "max-h-[28rem] overflow-y-auto rounded-2xl bg-surface-2 p-4 whitespace-pre-line",
+                  "max-h-[28rem] overflow-y-auto rounded-2xl bg-surface-2 p-4 whitespace-pre-wrap",
                   tafseer.lang === "ar" ? "font-arabic text-xl leading-loose" : "leading-relaxed",
                 )}
               >

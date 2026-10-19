@@ -42,3 +42,17 @@ test("the tafseer route only serves listed tafseers and real ayahs", async ({ re
     expect((await request.get(`/api/tafseer/${path}`)).status(), path).toBe(404);
   }
 });
+
+// Needs the internet: our route must hand on exactly what the source sends, for a fixed sample.
+test("tafseer is served byte-identical to the source", async ({ request }, info) => {
+  test.skip(info.project.name !== "tablet-portrait", "one run is enough");
+  test.setTimeout(90_000);
+  for (const id of [10, 2, 4]) {
+    for (const [surah, ayah] of [[1, 1], [1, 7], [2, 255], [114, 6]]) {
+      const ours = await request.get(`/api/tafseer/${id}/${surah}/${ayah}`);
+      const source = await request.get(`http://api.quran-tafseer.com/tafseer/${id}/${surah}/${ayah}`);
+      expect(ours.status(), `${id}/${surah}/${ayah}`).toBe(200);
+      expect((await ours.json()).text, `${id}/${surah}/${ayah}`).toBe((await source.json()).text);
+    }
+  }
+});
