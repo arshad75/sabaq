@@ -5,6 +5,7 @@ import { AYAH_COUNTS, RECITERS, SURAH_NAMES, nextAyah, recitationUrl, type Recit
 import { Button } from "@/components/ui/Button";
 import { Field, Select, Switch } from "@/components/ui/Form";
 import { Banner } from "@/components/ui/States";
+import { TafseerPanel } from "./TafseerPanel";
 
 type Status = "idle" | "loading" | "playing" | "paused" | "error";
 
@@ -148,6 +149,7 @@ export function RecitationPlayer({ initialSurah = 1 }: { initialSurah?: number }
         </a>
         .
       </p>
+      <TafseerPanel surah={surah} ayah={ayah} />
     </div>
   );
 }
