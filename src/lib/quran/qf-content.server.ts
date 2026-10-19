@@ -53,20 +53,23 @@ export type SourceVerse = { key: string; number: number; indopak: string; transl
 
 /** Every ayah of a surah: IndoPak Nastaleeq text and one translation (HTML), exactly as sent. */
 export async function fetchSurah(surah: number, translation: number): Promise<SourceVerse[]> {
-  const verses: SourceVerse[] = [];
-  for (let page = 1; page <= 10; page++) {
-    const res = await apiGet(
-      `/verses/by_chapter/${surah}?fields=text_indopak_nastaleeq&translations=${translation}&per_page=50&page=${page}`,
-    );
+  type Page = {
+    verses: { verse_key: string; verse_number: number; text_indopak_nastaleeq: string; translations?: { text: string }[] }[];
+    pagination: { total_pages: number };
+  };
+  const getPage = async (page: number): Promise<Page> => {
+    const path = `/verses/by_chapter/${surah}?fields=text_indopak_nastaleeq&translations=${translation}&per_page=50&page=${page}`;
+    let res = await apiGet(path);
+    // One retry for a busy or briefly unavailable API.
+    if (res.status === 429 || res.status >= 500) res = await apiGet(path);
     if (!res.ok) throw new Error(`Quran Foundation returned ${res.status}`);
-    const body = (await res.json()) as {
-      verses: { verse_key: string; verse_number: number; text_indopak_nastaleeq: string; translations?: { text: string }[] }[];
-      pagination: { next_page: number | null };
-    };
-    for (const v of body.verses) {
-      verses.push({ key: v.verse_key, number: v.verse_number, indopak: v.text_indopak_nastaleeq, translation: v.translations?.[0]?.text ?? "" });
-    }
-    if (!body.pagination.next_page) break;
-  }
-  return verses;
+    return (await res.json()) as Page;
+  };
+  const first = await getPage(1);
+  const rest = await Promise.all(
+    Array.from({ length: Math.min(first.pagination.total_pages, 10) - 1 }, (_, i) => getPage(i + 2)),
+  );
+  return [first, ...rest].flatMap((p) =>
+    p.verses.map((v) => ({ key: v.verse_key, number: v.verse_number, indopak: v.text_indopak_nastaleeq, translation: v.translations?.[0]?.text ?? "" })),
+  );
 }

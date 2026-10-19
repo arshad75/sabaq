@@ -95,7 +95,9 @@ test("Quran text, translation and tafsir match the Quran.com copy", async ({ req
   const plain = (h: string) =>
     h.replace(/<sup\b[^>]*>[\s\S]*?<\/sup>/gi, "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
   for (const [s, t] of [["1", "84"], ["2", "20"], ["114", "151"]]) {
-    const ours = (await (await request.get(`/api/quran/${s}?t=${t}`)).json()) as { verses: { key: string; text: string; translation: string }[] };
+    const res = await request.get(`/api/quran/${s}?t=${t}`, { timeout: 60_000 });
+    expect(res.status(), `surah ${s}`).toBe(200);
+    const ours = (await res.json()) as { verses: { key: string; text: string; translation: string }[] };
     const source: { verse_key: string; text_indopak_nastaleeq: string; translations: { text: string }[] }[] = [];
     for (let p = 1; p <= 10; p++) {
       const body = await (await request.get(`https://api.quran.com/api/v4/verses/by_chapter/${s}?fields=text_indopak_nastaleeq&translations=${t}&per_page=50&page=${p}`)).json();

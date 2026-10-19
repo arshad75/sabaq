@@ -67,7 +67,7 @@ describe("tafsir from the Quran Foundation API", () => {
       urls.push(url);
       const page = Number(new URL(url).searchParams.get("page"));
       const verse = (n: number) => ({ verse_key: `2:${n}`, verse_number: n, text_indopak_nastaleeq: `[[text ${n}]]`, translations: [{ text: `[[tr ${n}]]` }] });
-      return Response.json({ verses: page === 1 ? [verse(1), verse(2)] : [verse(3)], pagination: { next_page: page === 1 ? 2 : null } });
+      return Response.json({ verses: page === 1 ? [verse(1), verse(2)] : [verse(3)], pagination: { total_pages: 2 } });
     });
     const verses = await fetchSurah(2, 84);
     expect(verses.map((v) => v.key)).toEqual(["2:1", "2:2", "2:3"]);
