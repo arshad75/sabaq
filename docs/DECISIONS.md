@@ -226,13 +226,15 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
 - **Ayah by ayah, following the recitation.** Under the player, the tafseer of the ayah being recited
   is shown and moves on with it; the next ayah's tafseer is fetched ahead. The choice of tafseer and
   the on/off switch are remembered on the device.
-- **Source: Quran Tafseer API**, proxied by `/api/tafseer/[id]/[surah]/[ayah]` because it is HTTP-only
-  (browsers block it from an HTTPS page) and sends no CORS headers. The route accepts only listed
-  tafseer ids and real surah/ayah numbers (no open proxy), times out after 8 s, and caches with
-  `use cache` plus a CDN header, since classical tafseer never changes.
-- **Public-domain works only** (see `docs/DATA_LICENSES.md`); the modern ones the API also serves are
-  left out until permission is confirmed. Text lives in `src/lib/quran/tafseer.ts` because it quotes
-  Quran words; it is rendered as plain text, verbatim.
+- **Source: Quran Foundation Content API** (the API behind Quran.com), replacing the unlicensed
+  quran-tafseer.com. `/api/tafseer/[id]/[surah]/[ayah]` gets an OAuth client-credentials token on the
+  server (`src/lib/quran/qf-content.server.ts`; the secret never reaches the browser), accepts only listed
+  tafsir ids and real ayahs, and caches for a day (their terms cap storage at a week).
+- **HTML becomes plain text on the server** (`src/lib/quran/tafsir-html.ts`): paragraphs, headings and
+  Arabic quotations are kept, every tag is dropped, so no outside markup reaches the page. One tafsir
+  note often covers several ayahs; the panel says "Explains ayahs 1–9 together" and keeps it while the
+  recitation moves through them.
+- Which tafsirs to offer is the teacher's call; the list in `src/lib/quran/tafseer.ts` is easy to trim.
 - **Own visual identity for the journey** (not a Duolingo copy): eight-point star (khatam) lessons on a
   gold thread, arched "stations" with a girih lattice, Noor instead of XP, a crescent for days in a row,
   lamps instead of stars, rising lights instead of confetti, calm rounded buttons.
