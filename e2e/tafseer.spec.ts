@@ -124,3 +124,39 @@ test("Quran text, translation and tafsir match the Quran.com copy", async ({ req
     expect(words(shown), `${id}@${key}`).toBe(words(source.text.replace(/&(amp|lt|gt|quot|nbsp|#\d+|#x[0-9a-f]+);/gi, "")));
   }
 });
+
+// The learning journey's word lessons: each word must be the source's own word, in order, with its clip.
+test("Quran words for the journey match the source, word by word", async ({ request }, info) => {
+  test.skip(info.project.name !== "tablet-portrait", "one run is enough");
+  test.setTimeout(120_000);
+  expect((await request.get("/api/quran/115/words")).status()).toBe(404);
+  const probe = await request.get("/api/quran/112/words");
+  test.skip(probe.status() === 502, "Quran Foundation credentials not configured here");
+
+  for (const s of ["1", "114", "113", "112"]) {
+    const res = await request.get(`/api/quran/${s}/words`, { timeout: 60_000 });
+    expect(res.status(), `surah ${s}`).toBe(200);
+    const ours = (await res.json()) as { verses: { key: string; text: string; words: { id: string; text: string; audio: string }[] }[] };
+    const text = ((await (await request.get(`/api/quran/${s}`)).json()) as { verses: { key: string; text: string }[] }).verses;
+    const source = (await (await request.get(`https://api.quran.com/api/v4/verses/by_chapter/${s}?words=true&per_page=50`)).json()).verses as {
+      verse_key: string;
+      words: { position: number; char_type_name: string; audio_url: string }[];
+    }[];
+    expect(ours.verses.map((v) => v.key)).toEqual(source.map((v) => v.verse_key));
+    for (const [i, v] of ours.verses.entries()) {
+      expect(v.text, v.key).toBe(text[i].text);
+      const src = source[i].words.filter((w) => w.char_type_name === "word");
+      expect(v.words.map((w) => w.id), v.key).toEqual(src.map((w) => `${v.key}:${w.position}`));
+      expect(v.words.map((w) => w.audio), v.key).toEqual(src.map((w) => `https://verses.quran.foundation/${w.audio_url}`));
+      // Every word is found, in order, in the ayah's own text.
+      let at = 0;
+      for (const w of v.words) {
+        const found = v.text.indexOf(w.text, at);
+        expect(found, `${w.id} in ${v.key}`).toBeGreaterThanOrEqual(0);
+        at = found + w.text.length;
+      }
+    }
+    const clip = await request.head(ours.verses[0].words[0].audio);
+    expect(clip.status(), "word clip").toBe(200);
+  }
+});

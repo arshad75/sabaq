@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { lessonById, type Lesson } from "@/lib/learn/curriculum";
-import { buildLesson, buildReview, seeded, type Exercise } from "@/lib/learn/exercises";
+import { preloadClips } from "@/lib/audio/clip";
+import { isQuranLesson, lessonById, type Lesson } from "@/lib/learn/curriculum";
+import { buildLesson, buildQuranLesson, buildReview, seeded, type Exercise } from "@/lib/learn/exercises";
+import { quranFontReady } from "@/lib/quran/font";
+import { loadWords, type WordVerse } from "@/lib/quran/words";
 import { badgesOf, dayKey, isUnlocked, learnedLetters, strengthOf, streak, type LearnerData, type LessonResult, type Outcome } from "@/lib/learn/progress";
 import { activeLearner, recordResult, switchLearner, useLearnStore } from "@/lib/learn/store";
 import { pushActive, syncJourney, useSyncState, watchConnection } from "@/lib/learn/sync";
@@ -62,6 +65,70 @@ function Session({
   }, []);
   if (done) return <LessonDone {...done} review={review} onContinue={() => navigate("", true)} />;
   return <LessonPlayer lessonId={lessonId} title={title} exercises={exercises} onQuit={() => navigate("", true)} onFinish={finish} />;
+}
+
+const clipsOf = (exercises: Exercise[]) =>
+  exercises.flatMap((e) =>
+    e.kind === "word" || e.kind === "recite" || e.kind === "order" ? [e.audio] : e.kind === "choice" && e.prompt.audio ? [e.prompt.audio] : [],
+  );
+
+/** Quran lessons need the surah's words (and the font they're shown in) before they can start. */
+function QuranSession({ lesson, strength }: { lesson: Lesson; strength: (item: string) => number }) {
+  const [verses, setVerses] = useState<WordVerse[] | "failed" | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let live = true;
+    Promise.all([loadWords(lesson.surah!), quranFontReady()]).then(
+      ([reply, font]) => live && setVerses(font ? reply.verses : "failed"),
+      () => live && setVerses("failed"),
+    );
+    return () => {
+      live = false;
+    };
+  }, [lesson.surah, attempt]);
+
+  if (Array.isArray(verses))
+    return (
+      <Session
+        lessonId={lesson.id}
+        title={lesson.title}
+        build={() => {
+          const exercises = buildQuranLesson(lesson, verses, seeded(Date.now()), strength);
+          preloadClips(clipsOf(exercises));
+          return exercises;
+        }}
+      />
+    );
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Lesson: ${lesson.title}`} className="fixed inset-0 z-40 grid place-items-center bg-bg p-6">
+      {verses === "failed" ? (
+        <div role="alert" className="max-w-sm space-y-4 text-center">
+          <Icon name="wifiOff" size={40} className="mx-auto text-muted" />
+          <p className="text-xl font-semibold">Couldn’t load {lesson.title}</p>
+          <p className="text-muted">Quran lessons need the internet. Check the connection and try again.</p>
+          <div className="flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setVerses(null);
+                setAttempt((n) => n + 1);
+              }}
+              className="min-h-12 rounded-full bg-primary px-6 font-semibold text-primary-fg"
+            >
+              Try again
+            </button>
+            <button type="button" onClick={() => navigate("", true)} className="min-h-12 rounded-full bg-surface-2 px-6 font-semibold">
+              Back to the path
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p role="status" className="text-lg text-muted">
+          Getting {lesson.title} ready…
+        </p>
+      )}
+    </div>
+  );
 }
 
 function SidePanel({ data }: { data: LearnerData }) {
@@ -165,6 +232,8 @@ export function LearnApp() {
 
   if (page === "lesson" && arg) {
     const lesson = lessonById(arg);
+    if (lesson && isUnlocked(data, lesson.id) && isQuranLesson(lesson))
+      return <QuranSession key={`${learner.id}:${lesson.id}`} lesson={lesson} strength={(item) => strengthOf(data, item)} />;
     if (lesson && isUnlocked(data, lesson.id))
       return (
         <Session

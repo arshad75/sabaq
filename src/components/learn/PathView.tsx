@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { UNITS, letter, syllable, type Lesson, type LessonKind, type UnitColor } from "@/lib/learn/curriculum";
+import { ayahCount } from "@/lib/audio/recitation";
+import { UNITS, isQuranLesson, letter, syllable, type Lesson, type LessonKind, type UnitColor } from "@/lib/learn/curriculum";
 import { currentLessonId, isDone, isUnlocked, type LearnerData } from "@/lib/learn/progress";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Mascot } from "./Mascot";
@@ -15,6 +16,8 @@ const KIND: Record<LessonKind, { label: string; icon: IconName }> = {
   book: { label: "In my Qaida", icon: "book" },
   shapes: { label: "Letter shapes", icon: "shapes" },
   vowels: { label: "Short vowels", icon: "speech" },
+  words: { label: "Quran words", icon: "volume" },
+  recite: { label: "Listen and repeat", icon: "wave" },
 };
 
 // Deep jewel tones so white text and the gold lattice stay readable in light and dark themes.
@@ -103,11 +106,17 @@ function LessonRow({
             {state === "done" && <Lamps lit={lit} />}
           </p>
           <p className="mt-0.5 text-lg font-semibold">{lesson.title}</p>
-          <p lang="ar" dir="rtl" aria-hidden className="mt-1 flex flex-wrap gap-2 font-arabic text-2xl leading-[1.5] text-muted">
-            {preview(lesson).map((g, i) => (
-              <span key={i}>{g}</span>
-            ))}
-          </p>
+          {isQuranLesson(lesson) ? (
+            <p className="mt-1 text-sm text-muted">
+              Surah {lesson.title} · {ayahCount(lesson.surah!)} ayahs
+            </p>
+          ) : (
+            <p lang="ar" dir="rtl" aria-hidden className="mt-1 flex flex-wrap gap-2 font-arabic text-2xl leading-[1.5] text-muted">
+              {preview(lesson).map((g, i) => (
+                <span key={i}>{g}</span>
+              ))}
+            </p>
+          )}
         </div>
         {(open || state === "current") && (
           <div className="mt-3 border-t border-border pt-3">

@@ -1,7 +1,9 @@
 // Builds the exercises for one lesson. Pure and seeded, so it can be tested.
+import { recitationUrl } from "@/lib/audio/recitation";
 import type { LetterId } from "@/lib/qaida/letters";
 import { letterFor } from "@/lib/qaida/letters";
 import { qaidaCells } from "@/lib/qaida/layout";
+import { wordsText, type QuranWord, type WordVerse } from "@/lib/quran/words";
 import {
   DOTS,
   LOOK_ALIKES,
@@ -16,7 +18,7 @@ import {
   type Vowel,
 } from "./curriculum";
 
-export type Option = { id: string; text: string; arabic?: boolean };
+export type Option = { id: string; text: string; arabic?: boolean; quran?: boolean };
 
 export type Prompt = {
   /** The instruction, e.g. "Tap the letter you hear". */
@@ -27,6 +29,10 @@ export type Prompt = {
   text?: string;
   /** Letter whose name is played when the exercise opens and on the speaker button. */
   say?: LetterId;
+  /** Quran text from the API, shown in its own font. */
+  quran?: string;
+  /** Recording played when the exercise opens and on the speaker button. */
+  audio?: string;
 };
 
 export type Exercise =
@@ -44,9 +50,14 @@ export type Exercise =
       explain?: string;
       /** Letter to say once answered, to reinforce it. */
       sayAfter?: LetterId;
+      /** Recording to play once answered. */
+      audioAfter?: string;
     }
   | { kind: "match"; key: string; letters: LetterId[] }
-  | { kind: "find"; key: string; item: string; page: number; rows: number[]; answer: LetterId; by: "sound" | "glyph" };
+  | { kind: "find"; key: string; item: string; page: number; rows: number[]; answer: LetterId; by: "sound" | "glyph" }
+  | { kind: "word"; key: string; text: string; audio: string }
+  | { kind: "recite"; key: string; text: string; audio: string }
+  | { kind: "order"; key: string; item: string; words: { id: string; text: string }[]; audio: string };
 
 export type Rng = () => number;
 
@@ -315,7 +326,84 @@ export function buildLesson(lesson: Lesson, rng: Rng, strength?: Strength): Exer
       out.push(...shuffle(qs, rng).slice(0, first ? 7 : 12));
       return out;
     }
+    case "words":
+    case "recite":
+      // Built from the surah once it has loaded; see buildQuranLesson.
+      return [];
   }
+}
+
+// The teaching recitation: slow and clear, for saying each ayah after the reciter.
+const TEACHING_RECITER = "Husary_Muallim_128kbps";
+export const TEACHING_RECITER_NAME = "Al-Husary (teaching)";
+
+export function ayahAudio(verseKey: string): string {
+  const [s, a] = verseKey.split(":").map(Number);
+  return recitationUrl(TEACHING_RECITER, s, a);
+}
+
+/** The first time each distinct word appears in the surah, in reading order. */
+export function uniqueWords(verses: readonly WordVerse[]): QuranWord[] {
+  const seen = new Set<string>();
+  return verses.flatMap((v) => v.words).filter((w) => !seen.has(w.text) && !!seen.add(w.text));
+}
+
+export function hearWord(w: QuranWord, pool: readonly QuranWord[], rng: Rng): Exercise {
+  const others = shuffle(pool.filter((o) => o.text !== w.text), rng).slice(0, 3);
+  return {
+    kind: "choice",
+    key: key(`hearword-${w.id}`),
+    item: `w:${w.id}`,
+    prompt: { title: "Tap the word you hear", audio: w.audio },
+    options: shuffle([w, ...others], rng).map((o) => ({ id: o.id, text: o.text, quran: true })),
+    answer: w.id,
+  };
+}
+
+function orderOf(v: WordVerse): Exercise {
+  return { kind: "order", key: key(`order-${v.key}`), item: `a:${v.key}`, words: v.words.map((w) => ({ id: w.id, text: w.text })), audio: ayahAudio(v.key) };
+}
+
+/** Meet a few new words, pick words out by ear, then build short ayahs word by word. */
+export function buildWordsLesson(verses: readonly WordVerse[], rng: Rng, strength?: Strength): Exercise[] {
+  const all = uniqueWords(verses);
+  const s = (w: QuranWord) => strength?.(`w:${w.id}`) ?? 0;
+  const fresh = all.filter((w) => s(w) === 0).slice(0, 4);
+  const out: Exercise[] = fresh.flatMap((w) => [{ kind: "word", key: key(`word-${w.id}`), text: w.text, audio: w.audio } as Exercise, hearWord(w, all, rng)]);
+  const rest = shuffle(all.filter((w) => !fresh.includes(w)), rng).sort((a, b) => s(a) - s(b));
+  out.push(...rest.slice(0, 8 - fresh.length).map((w) => hearWord(w, all, rng)));
+  const short = shuffle(verses.filter((v) => v.words.length >= 3 && v.words.length <= 6), rng).slice(0, 2);
+  out.push(...short.map(orderOf));
+  return out;
+}
+
+/** Hear each ayah and say it after the reciter, then remember which ayah comes next. */
+export function buildReciteLesson(verses: readonly WordVerse[], rng: Rng): Exercise[] {
+  const listen: Exercise[] = verses.map((v) => ({ kind: "recite", key: key(`recite-${v.key}`), text: v.text, audio: ayahAudio(v.key) }));
+  const next: Exercise[] = [];
+  verses.slice(0, -1).forEach((v, i) => {
+    const answer = verses[i + 1];
+    const others = shuffle(
+      verses.filter((o) => o.key !== answer.key && o.key !== v.key && wordsText(o) !== wordsText(answer)),
+      rng,
+    ).slice(0, 2);
+    if (others.length === 0) return;
+    next.push({
+      kind: "choice",
+      key: key(`next-${answer.key}`),
+      item: `a:${answer.key}`,
+      prompt: { title: "Which ayah comes next?", quran: wordsText(v), audio: ayahAudio(v.key) },
+      // Words only, without the end-of-ayah marker, so its number doesn't give the answer away.
+      options: shuffle([answer, ...others], rng).map((o) => ({ id: o.key, text: wordsText(o), quran: true })),
+      answer: answer.key,
+      audioAfter: ayahAudio(answer.key),
+    });
+  });
+  return [...listen, ...shuffle(next, rng)];
+}
+
+export function buildQuranLesson(lesson: Lesson, verses: readonly WordVerse[], rng: Rng, strength?: Strength): Exercise[] {
+  return lesson.kind === "recite" ? buildReciteLesson(verses, rng) : buildWordsLesson(verses, rng, strength);
 }
 
 /** Letters a "find it" lesson can ask for: only boxes we know the letter of. */

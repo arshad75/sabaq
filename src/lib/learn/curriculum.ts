@@ -1,10 +1,12 @@
 // The learning path: units of short lessons on the Arabic letters, following the Noorani
-// Qaida's order. Everything here is single letters, marks and English names, never Quran text.
+// Qaida's order. The letter units hold single letters, marks and English names. The Quran units
+// only name a surah; its words and audio are loaded from Quran Foundation when the lesson opens.
+import { SURAH_NAMES } from "@/lib/audio/recitation";
 import { ALPHABET, letterById, letterFor, type LetterId, type LetterName } from "@/lib/qaida/letters";
 import { qaidaCells } from "@/lib/qaida/layout";
 
 export type UnitColor = "mint" | "sky" | "peach" | "lilac" | "sun" | "rose";
-export type LessonKind = "letters" | "review" | "dots" | "book" | "shapes" | "vowels";
+export type LessonKind = "letters" | "review" | "dots" | "book" | "shapes" | "vowels" | "words" | "recite";
 
 export type Lesson = {
   id: string;
@@ -17,7 +19,12 @@ export type Lesson = {
   /** Qaida page and rows for "find it in your book" lessons. */
   page?: number;
   rows?: number[];
+  /** Surah for the Quran lessons ("words" and "recite"). */
+  surah?: number;
 };
+
+/** Lessons whose content comes from the Quran API rather than this file. */
+export const isQuranLesson = (l: Lesson) => l.kind === "words" || l.kind === "recite";
 
 export type Unit = { id: string; title: string; goal: string; color: UnitColor; lessons: Lesson[] };
 
@@ -91,6 +98,10 @@ function bookLetters(page: number, rows: number[]): LetterId[] {
 const ids = (s: string) => s.split(" ") as LetterId[];
 const learn = (id: string, title: string, intro: string): Lesson => ({ id, title, kind: "letters", letters: ids(intro), intro: ids(intro) });
 const review = (id: string, title: string, letters: LetterId[]): Lesson => ({ id, title, kind: "review", letters });
+const quran = (id: string, kind: "words" | "recite", surah: number): Lesson => ({ id, title: SURAH_NAMES[surah - 1], kind, surah, letters: [] });
+
+// The order children usually learn them in: Al-Fatihah first, then from An-Nas back.
+const FIRST_SURAHS = [1, 114, 113, 112];
 
 const U1 = ids("alif ba ta tha jim ha kha dal dhal");
 const U2 = ids("ra zay sin shin sad dad tta zza ayn");
@@ -183,6 +194,20 @@ export const UNITS: Unit[] = [
       { id: "u7-3", title: "Seen to Ghayn", kind: "vowels", letters: ids("sin shin sad dad tta zza ayn ghayn") },
       { id: "u7-4", title: "Fa to Ya", kind: "vowels", letters: ids("fa qaf kaf lam mim nun waw hha ya") },
     ],
+  },
+  {
+    id: "u8",
+    title: "Words from the Quran",
+    goal: "Hear real words from your first surahs and find them.",
+    color: "sky",
+    lessons: FIRST_SURAHS.map((s, i) => quran(`u8-${i + 1}`, "words", s)),
+  },
+  {
+    id: "u9",
+    title: "My first surahs",
+    goal: "Listen to each ayah, say it after the reciter, and learn what comes next.",
+    color: "peach",
+    lessons: FIRST_SURAHS.map((s, i) => quran(`u9-${i + 1}`, "recite", s)),
   },
 ];
 

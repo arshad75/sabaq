@@ -118,6 +118,8 @@ const BADGES: BadgeRule[] = [
   { id: "book", title: "Book explorer", description: "Find letters in your Qaida", icon: "book", test: (d) => unitDone(d, "u5") },
   { id: "shapes", title: "Shape spotter", description: "Finish Letter shapes", icon: "target", test: (d) => unitDone(d, "u6") },
   { id: "vowels", title: "First sounds", description: "Finish Short vowels", icon: "star", test: (d) => unitDone(d, "u7") },
+  { id: "words", title: "Word finder", description: "Finish Words from the Quran", icon: "target", test: (d) => unitDone(d, "u8") },
+  { id: "surahs", title: "First surahs", description: "Finish My first surahs", icon: "book", test: (d) => unitDone(d, "u9") },
   { id: "xp100", title: "100 Noor", description: "Gather 100 Noor", icon: "star", test: (d) => d.xp >= 100 },
   { id: "xp500", title: "500 Noor", description: "Gather 500 Noor", icon: "star", test: (d) => d.xp >= 500 },
   { id: "master10", title: "Strong ten", description: "Make 10 letters strong", icon: "check", test: (d) => masteredCount(d) >= 10 },

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AYAH_COUNTS, RECITERS, SURAH_NAMES, nextAyah, recitationUrl, type ReciterId } from "@/lib/audio/recitation";
 import { cn } from "@/lib/cn";
+import { useQuranFont } from "@/lib/quran/font";
 import { LANGUAGE, TAFSEERS, TRANSLATIONS, type SurahReply, type TranslationId } from "@/lib/quran/tafseer";
 import { Button } from "@/components/ui/Button";
 import { Field, Select, Switch } from "@/components/ui/Form";
@@ -11,19 +12,6 @@ import { setListenPrefs, useListenPrefs } from "./listen-prefs";
 import { TafsirNote, useTafsir } from "./tafsir";
 
 type Status = "idle" | "loading" | "playing" | "paused" | "error";
-const FONT = "32px IndoPakNastaleeq";
-
-/** Quran Foundation's IndoPak text must only be shown in its own font, so wait for it. */
-function useQuranFont(): "loading" | "ready" | "failed" {
-  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
-  useEffect(() => {
-    document.fonts.load(FONT).then(
-      (faces) => setState(faces.length > 0 && document.fonts.check(FONT) ? "ready" : "failed"),
-      () => setState("failed"),
-    );
-  }, []);
-  return state;
-}
 
 const surahs = new Map<string, Promise<SurahReply>>();
 function loadSurah(surah: number, translation: TranslationId): Promise<SurahReply> {

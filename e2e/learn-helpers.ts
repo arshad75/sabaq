@@ -71,13 +71,45 @@ export async function play(page: Page, { mistake = false, shots = "" } = {}) {
         await main.locator(`[data-match="g:${id}"]`).click();
         await main.locator(`[data-match="n:${id}"]`).click();
       }
+    } else if (await main.locator("[data-step]").count()) {
+      kinds.add("order");
+      if (shots && !kinds.has("shot-order")) {
+        kinds.add("shot-order");
+        await shot(page, `${shots}-order`);
+      }
+      const n = await main.locator("[data-step]").count();
+      for (let i = 0; i < n; i++) await main.locator(`[data-step="${i}"]`).click();
     } else {
       kinds.add("info");
       if (shots && step === 0) await shot(page, `${shots}-intro`);
     }
-    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: /^(Continue|I said it)$/ }).click();
   }
   throw new Error("lesson did not finish");
+}
+
+/** Serves obviously fake word data for the Quran lessons and keeps their audio off the network. */
+export async function mockQuranWords(page: Page) {
+  await page.route("**/api/quran/*/words", (route) => {
+    const surah = Number(new URL(route.request().url()).pathname.split("/")[3]);
+    const counts = surah === 1 ? [4, 4, 2, 3, 4, 3, 9] : [4, 3, 5, 4, 5];
+    const verses = counts.map((n, i) => {
+      const key = `${surah}:${i + 1}`;
+      return {
+        key,
+        number: i + 1,
+        text: `[ayah ${key}]`,
+        words: Array.from({ length: n }, (_, p) => ({
+          id: `${key}:${p + 1}`,
+          position: p + 1,
+          text: `[w${i + 1}.${p + 1}]`,
+          audio: `https://verses.quran.foundation/wbw/test_${i}_${p}.mp3`,
+        })),
+      };
+    });
+    return route.fulfill({ json: { verses } });
+  });
+  await page.route(/^https:\/\/(verses\.quran\.foundation\/wbw|everyayah\.com)\//, (route) => route.abort());
 }
 
 export async function noSideScroll(page: Page) {

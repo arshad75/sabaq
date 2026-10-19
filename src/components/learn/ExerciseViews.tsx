@@ -4,9 +4,10 @@ import Image from "next/image";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import { QAIDA, qaidaImageSrc } from "@/lib/books";
+import { playClip } from "@/lib/audio/clip";
 import { letterFor, speakLetter, type LetterId } from "@/lib/qaida/letters";
 import { letter } from "@/lib/learn/curriculum";
-import { findableCells, seeded, shuffle, type Exercise, type Prompt } from "@/lib/learn/exercises";
+import { TEACHING_RECITER_NAME, findableCells, seeded, shuffle, type Exercise, type Prompt } from "@/lib/learn/exercises";
 import { QaidaCredit } from "@/components/reading/ImagePageView";
 import { Icon } from "@/components/ui/Icon";
 
@@ -23,6 +24,46 @@ function Arabic({ children, className }: { children: string; className?: string 
       {children}
     </span>
   );
+}
+
+/** Quran text from the API, only ever in the IndoPak Nastaleeq font it was made for. */
+export function Quran({ children, className }: { children: string; className?: string }) {
+  return (
+    <span lang="ar" dir="rtl" translate="no" className={cn("font-[IndoPakNastaleeq] leading-[2.2]", className)}>
+      {children}
+    </span>
+  );
+}
+
+export function QuranCredit() {
+  return (
+    <p className="text-center text-xs text-muted">
+      Quran text and word recordings from Quran.com (Quran Foundation). Ayah recitation by {TEACHING_RECITER_NAME}, from EveryAyah.com.
+    </p>
+  );
+}
+
+function ClipButton({ url, size = "md", label = "Play the sound again" }: { url: string; size?: "md" | "xl"; label?: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={() => playClip(url)}
+      style={edge("color-mix(in srgb, var(--primary) 55%, black)")}
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full bg-primary text-primary-fg shadow-sm transition hover:brightness-110",
+        size === "xl" ? "size-28 rounded-3xl" : "size-14",
+      )}
+    >
+      <Icon name="volume" size={size === "xl" ? 52 : 28} />
+    </button>
+  );
+}
+
+function useClipOnOpen(url: string | undefined, exKey: string) {
+  useEffect(() => {
+    if (url) playClip(url);
+  }, [url, exKey]);
 }
 
 export function SayButton({ id, size = "md", label = "Play the sound again" }: { id: LetterId; size?: "md" | "xl"; label?: string }) {
@@ -46,6 +87,22 @@ function PromptView({ prompt, exKey }: { prompt: Prompt; exKey: string }) {
   useEffect(() => {
     if (prompt.say) say(prompt.say);
   }, [prompt.say, exKey]);
+  useClipOnOpen(prompt.audio, exKey);
+  if (prompt.quran)
+    return (
+      <div className="flex items-center justify-center gap-4">
+        <div className="min-w-0 flex-1 rounded-3xl border-2 border-border bg-surface px-5 py-3 text-center shadow-sm">
+          <Quran className="text-3xl sm:text-4xl">{prompt.quran}</Quran>
+        </div>
+        {prompt.audio && <ClipButton url={prompt.audio} label="Hear this ayah again" />}
+      </div>
+    );
+  if (prompt.audio)
+    return (
+      <div className="flex justify-center">
+        <ClipButton url={prompt.audio} size="xl" />
+      </div>
+    );
   if (prompt.glyph)
     return (
       <div className="flex items-center justify-center gap-4">
@@ -99,6 +156,8 @@ export function ChoiceView({
   onSelect: (id: string) => void;
 }) {
   const arabic = ex.options.every((o) => o.arabic);
+  const quran = ex.options.every((o) => o.quran);
+  const long = quran && ex.options.some((o) => o.text.length > 14);
   return (
     <div className="space-y-8" data-answer={ex.answer}>
       <h2 className="text-2xl font-bold sm:text-3xl">{ex.prompt.title}</h2>
@@ -106,7 +165,7 @@ export function ChoiceView({
       <div
         role="group"
         aria-label="Answers"
-        className={cn("grid gap-3", arabic ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-2")}
+        className={cn("grid gap-3", long ? "grid-cols-1" : arabic || quran ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-2")}
       >
         {ex.options.map((o, i) => {
           const state =
@@ -131,14 +190,20 @@ export function ChoiceView({
               style={edge(optionEdge[state])}
               className={cn(
                 "relative flex items-center justify-center rounded-2xl border-2 shadow-sm transition hover:-translate-y-0.5 px-4 font-semibold disabled:cursor-default",
-                arabic ? "min-h-28" : "min-h-16 text-xl",
+                arabic || quran ? "min-h-28" : "min-h-16 text-xl",
                 optionClass(state),
               )}
             >
               <span aria-hidden className="absolute top-2 left-2.5 hidden text-xs font-medium text-muted md:block">
                 {i + 1}
               </span>
-              {o.arabic ? <Arabic className="text-6xl">{o.text}</Arabic> : o.text}
+              {o.quran ? (
+                <Quran className={long ? "py-2 text-3xl" : "text-4xl"}>{o.text}</Quran>
+              ) : o.arabic ? (
+                <Arabic className="text-6xl">{o.text}</Arabic>
+              ) : (
+                o.text
+              )}
             </button>
           );
         })}
@@ -378,4 +443,110 @@ export function FindView({
 /** Whether a tapped Qaida box holds the asked-for letter. */
 export function findIsRight(ex: Of<"find">, cellId: string): boolean {
   return findableCells(ex.page, ex.rows).some((c) => c.id === cellId && letterFor(ex.page, c)?.id === ex.answer);
+}
+
+export function WordView({ ex }: { ex: Of<"word"> }) {
+  useClipOnOpen(ex.audio, ex.key);
+  return (
+    <div className="space-y-6 text-center">
+      <p className="inline-flex items-center gap-1.5 rounded-full bg-tile-lilac px-3 py-1 text-sm font-bold tracking-wide uppercase">
+        <Icon name="star" size={16} className="text-star" /> New word
+      </p>
+      <button
+        type="button"
+        onClick={() => playClip(ex.audio)}
+        aria-label="Hear this word"
+        style={edge("var(--border)")}
+        className="mx-auto grid min-h-56 min-w-56 place-items-center rounded-[2.5rem] border-2 border-border bg-surface px-10 shadow-sm transition hover:bg-surface-2"
+      >
+        <Quran className="text-7xl sm:text-8xl">{ex.text}</Quran>
+      </button>
+      <p className="flex items-center justify-center gap-2 text-muted">
+        <Icon name="volume" size={18} /> Tap the word to hear it again
+      </p>
+    </div>
+  );
+}
+
+export function ReciteView({ ex }: { ex: Of<"recite"> }) {
+  useClipOnOpen(ex.audio, ex.key);
+  return (
+    <div className="space-y-6 text-center">
+      <p className="inline-flex items-center gap-1.5 rounded-full bg-tile-sky px-3 py-1 text-sm font-bold tracking-wide uppercase">
+        <Icon name="wave" size={16} /> Listen and repeat
+      </p>
+      <div className="rounded-3xl border-2 border-border bg-surface px-5 py-4 shadow-sm">
+        <Quran className="text-4xl sm:text-5xl">{ex.text}</Quran>
+      </div>
+      <div className="flex flex-col items-center gap-3">
+        <ClipButton url={ex.audio} label="Hear the ayah again" />
+        <p className="text-lg text-muted">Listen, then say it after the reciter.</p>
+      </div>
+    </div>
+  );
+}
+
+/** Tap an ayah's words in reading order. Repeated words can be tapped in either place. */
+export function OrderView({ ex, onDone }: { ex: Of<"order">; onDone: (right: boolean) => void }) {
+  useClipOnOpen(ex.audio, ex.key);
+  const bank = useMemo(
+    () => shuffle(ex.words.map((w, step) => ({ ...w, step })), seeded(ex.key.length * 31 + ex.words.length)),
+    [ex.key, ex.words],
+  );
+  const [placed, setPlaced] = useState<number[]>([]);
+  const [missed, setMissed] = useState(false);
+  const [flash, setFlash] = useState<number | null>(null);
+
+  const tap = (step: number) => {
+    const expected = ex.words[placed.length];
+    if (!expected || placed.includes(step)) return;
+    if (ex.words[step].text === expected.text) {
+      const next = [...placed, step];
+      setPlaced(next);
+      if (next.length === ex.words.length) onDone(!missed);
+    } else {
+      setMissed(true);
+      setFlash(step);
+      setTimeout(() => setFlash(null), 500);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold sm:text-3xl">Tap the words in order</h2>
+        <ClipButton url={ex.audio} label="Hear the ayah again" />
+      </div>
+      <div
+        dir="rtl"
+        aria-label="Your ayah"
+        className="flex min-h-24 flex-wrap items-center gap-x-3 rounded-3xl border-2 border-dashed border-border bg-surface-2/50 px-4 py-2"
+      >
+        {placed.map((step) => (
+          <Quran key={step} className="text-4xl">
+            {ex.words[step].text}
+          </Quran>
+        ))}
+      </div>
+      <div role="group" aria-label="Words" dir="rtl" className="flex flex-wrap justify-center gap-3">
+        {bank.map((w) => {
+          const used = placed.includes(w.step);
+          const state = used ? "right" : flash === w.step ? "wrong" : "idle";
+          return (
+            <button
+              key={w.step}
+              type="button"
+              data-step={w.step}
+              disabled={used}
+              onClick={() => tap(w.step)}
+              style={edge(optionEdge[state])}
+              className={cn("min-h-20 rounded-2xl border-2 px-5 shadow-sm transition", optionClass(state), used && "opacity-40")}
+            >
+              <Quran className="text-4xl">{w.text}</Quran>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

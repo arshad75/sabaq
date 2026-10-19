@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { noSideScroll, play, seed, shot } from "./learn-helpers";
+import { mockQuranWords, noSideScroll, play, seed, shot } from "./learn-helpers";
 
 test("a new learner signs up, finishes a perfect first lesson and keeps their streak", async ({ page }) => {
   await page.goto("/learn");
@@ -91,6 +91,34 @@ for (const [id, name] of [
     await expect(page.getByTestId("lesson-done")).toBeVisible();
   });
 }
+
+for (const [id, name, want] of [
+  ["u8-1", "quran-words", "order"],
+  ["u9-2", "recite", "choice"],
+] as const) {
+  test(`the ${name} lesson loads its surah and plays through`, async ({ page }) => {
+    await mockQuranWords(page);
+    await seed(page, id);
+    await page.goto("/learn");
+    const row = page.locator(`[data-lesson="${id}"]`);
+    await expect(row).toHaveAttribute("data-state", "current");
+    await page.goto(`/learn#/lesson/${id}`);
+    await expect(page.getByText(/Quran text and word recordings from Quran\.com/)).toBeVisible();
+    await noSideScroll(page);
+    const kinds = await play(page, { shots: name, mistake: true });
+    expect(kinds.has(want)).toBe(true);
+    await expect(page.getByTestId("lesson-done")).toBeVisible();
+  });
+}
+
+test("a Quran lesson that can't load says so and offers a way back", async ({ page }) => {
+  await page.route("**/api/quran/*/words", (route) => route.fulfill({ status: 502, json: { error: "Quran source unavailable" } }));
+  await seed(page, "u8-1");
+  await page.goto("/learn#/lesson/u8-1");
+  await expect(page.getByRole("alert").filter({ hasText: "Couldn’t load" })).toContainText("Quran lessons need the internet");
+  await page.getByRole("button", { name: "Back to the path" }).click();
+  await expect(page.locator('[data-lesson="u8-1"]')).toBeVisible();
+});
 
 test("practice waits until the first lesson is done", async ({ page }) => {
   await seed(page);

@@ -1,4 +1,6 @@
-// Server only: holds the Quran Foundation credentials. Imported by the tafsir route, never by pages.
+// Server only: holds the Quran Foundation credentials. Imported by the API routes, never by pages.
+import type { ApiWordVerse } from "./words";
+
 const PRODUCTION = { auth: "https://oauth2.quran.foundation", api: "https://apis.quran.foundation/content/api/v4" };
 const PRELIVE = { auth: "https://prelive-oauth2.quran.foundation", api: "https://apis-prelive.quran.foundation/content/api/v4" };
 
@@ -49,16 +51,11 @@ export async function fetchTafsir(id: number, surah: number, ayah: number): Prom
   return { verses: Object.keys(t.verses ?? {}), html: t.text };
 }
 
-export type SourceVerse = { key: string; number: number; indopak: string; translation: string };
-
-/** Every ayah of a surah: IndoPak Nastaleeq text and one translation (HTML), exactly as sent. */
-export async function fetchSurah(surah: number, translation: number): Promise<SourceVerse[]> {
-  type Page = {
-    verses: { verse_key: string; verse_number: number; text_indopak_nastaleeq: string; translations?: { text: string }[] }[];
-    pagination: { total_pages: number };
-  };
+/** Every verse of a surah from /verses/by_chapter, all pages fetched in parallel. */
+async function chapterVerses<V>(surah: number, query: string): Promise<V[]> {
+  type Page = { verses: V[]; pagination: { total_pages: number } };
   const getPage = async (page: number): Promise<Page> => {
-    const path = `/verses/by_chapter/${surah}?fields=text_indopak_nastaleeq&translations=${translation}&per_page=50&page=${page}`;
+    const path = `/verses/by_chapter/${surah}?${query}&per_page=50&page=${page}`;
     let res = await apiGet(path);
     // One retry for a busy or briefly unavailable API.
     if (res.status === 429 || res.status >= 500) res = await apiGet(path);
@@ -69,7 +66,19 @@ export async function fetchSurah(surah: number, translation: number): Promise<So
   const rest = await Promise.all(
     Array.from({ length: Math.min(first.pagination.total_pages, 10) - 1 }, (_, i) => getPage(i + 2)),
   );
-  return [first, ...rest].flatMap((p) =>
-    p.verses.map((v) => ({ key: v.verse_key, number: v.verse_number, indopak: v.text_indopak_nastaleeq, translation: v.translations?.[0]?.text ?? "" })),
-  );
+  return [first, ...rest].flatMap((p) => p.verses);
+}
+
+export type SourceVerse = { key: string; number: number; indopak: string; translation: string };
+
+/** Every ayah of a surah: IndoPak Nastaleeq text and one translation (HTML), exactly as sent. */
+export async function fetchSurah(surah: number, translation: number): Promise<SourceVerse[]> {
+  type Verse = { verse_key: string; verse_number: number; text_indopak_nastaleeq: string; translations?: { text: string }[] };
+  const verses = await chapterVerses<Verse>(surah, `fields=text_indopak_nastaleeq&translations=${translation}`);
+  return verses.map((v) => ({ key: v.verse_key, number: v.verse_number, indopak: v.text_indopak_nastaleeq, translation: v.translations?.[0]?.text ?? "" }));
+}
+
+/** Every ayah of a surah with its words: IndoPak Nastaleeq text and word clip paths, exactly as sent. */
+export async function fetchSurahWords(surah: number): Promise<ApiWordVerse[]> {
+  return chapterVerses<ApiWordVerse>(surah, "words=true&word_fields=text_indopak_nastaleeq&fields=text_indopak_nastaleeq");
 }

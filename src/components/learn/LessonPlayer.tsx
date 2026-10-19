@@ -3,19 +3,35 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import { usePrefs } from "@/lib/prefs";
+import { playClip, stopClip } from "@/lib/audio/clip";
 import { speakLetter } from "@/lib/qaida/letters";
 import { letter } from "@/lib/learn/curriculum";
 import { again, seeded, type Exercise } from "@/lib/learn/exercises";
 import type { LessonResult } from "@/lib/learn/progress";
 import { buzz, playSfx, type Sfx } from "@/lib/learn/sfx";
 import { Icon } from "@/components/ui/Icon";
-import { ChoiceView, FindView, IntroView, MatchView, TipView, findIsRight, type Status } from "./ExerciseViews";
+import {
+  ChoiceView,
+  FindView,
+  IntroView,
+  MatchView,
+  OrderView,
+  Quran,
+  QuranCredit,
+  ReciteView,
+  TipView,
+  WordView,
+  findIsRight,
+  type Status,
+} from "./ExerciseViews";
 import { Mascot } from "./Mascot";
 
 const PRAISE = ["Great job!", "Excellent!", "Well done!", "MashaAllah!", "Amazing!", "You got it!", "Brilliant!"];
 const MAX_REPEATS = 2;
 
-const graded = (e: Exercise) => e.kind === "choice" || e.kind === "find" || e.kind === "match";
+const graded = (e: Exercise) => e.kind === "choice" || e.kind === "find" || e.kind === "match" || e.kind === "order";
+const fromQuran = (e: Exercise) =>
+  e.kind === "word" || e.kind === "recite" || e.kind === "order" || (e.kind === "choice" && e.options.some((o) => o.quran));
 const baseKey = (e: Exercise) => e.key.split("#")[0];
 
 export function LessonPlayer({
@@ -80,9 +96,13 @@ export function LessonPlayer({
       // Say the right letter once answered, so the sound sticks.
       const sayId = ex.kind === "choice" ? ex.sayAfter : undefined;
       if (sayId) setTimeout(() => speakLetter(letter(sayId)), 350);
+      const clip = ex.kind === "choice" ? ex.audioAfter : undefined;
+      if (clip) setTimeout(() => playClip(clip), 350);
     },
     [ex, rng, sfx],
   );
+
+  useEffect(() => stopClip, []);
 
   const check = useCallback(() => {
     if (!selected || status !== "answering") return;
@@ -178,6 +198,9 @@ export function LessonPlayer({
         {ex.kind === "tip" && <TipView ex={ex} />}
         {ex.kind === "choice" && <ChoiceView ex={ex} status={status} selected={selected} onSelect={select} />}
         {ex.kind === "find" && <FindView ex={ex} status={status} selected={selected} onSelect={select} />}
+        {ex.kind === "word" && <WordView ex={ex} />}
+        {ex.kind === "recite" && <ReciteView ex={ex} />}
+        {ex.kind === "order" && <OrderView ex={ex} onDone={(right) => settle(right, [{ item: ex.item, right }])} />}
         {ex.kind === "match" && (
           <MatchView
             ex={ex}
@@ -188,6 +211,11 @@ export function LessonPlayer({
               )
             }
           />
+        )}
+        {fromQuran(ex) && (
+          <div className="mt-8">
+            <QuranCredit />
+          </div>
         )}
       </main>
 
@@ -209,10 +237,14 @@ export function LessonPlayer({
               <>
                 <Mascot mood="oops" size={56} className="hidden sm:block" />
                 <div className="text-danger">
-                  <p className="text-xl font-bold">{ex.kind === "match" ? "Nearly! Keep practising those." : "Not quite. The answer is:"}</p>
+                  <p className="text-xl font-bold">
+                    {ex.kind === "match" ? "Nearly! Keep practising those." : ex.kind === "order" ? "Nearly! Listen to it once more." : "Not quite. The answer is:"}
+                  </p>
                   {correctOption && (
                     <p className="mt-0.5 text-lg">
-                      {correctOption.arabic ? (
+                      {correctOption.quran ? (
+                        <Quran className="text-3xl">{correctOption.text}</Quran>
+                      ) : correctOption.arabic ? (
                         <span lang="ar" dir="rtl" className="font-arabic text-3xl">
                           {correctOption.text}
                         </span>
@@ -248,10 +280,10 @@ export function LessonPlayer({
                 status === "wrong" ? "bg-danger text-primary-fg" : status === "right" ? "bg-success text-primary-fg" : "bg-primary text-primary-fg",
               )}
             >
-              Continue
+              {ex.kind === "recite" ? "I said it" : "Continue"}
             </button>
           ) : (
-            <p className="ml-auto text-muted">Tap a letter, then its name</p>
+            <p className="ml-auto text-muted">{ex.kind === "order" ? "Tap the words in order" : "Tap a letter, then its name"}</p>
           )}
         </div>
       </footer>

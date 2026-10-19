@@ -266,3 +266,18 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
   separate letters), and the next name starts 70 ms before that cut with a crossfade. بخت now takes
   1.2 s instead of 2.7 s with no audible gap; the last name keeps its natural ending. Starting audio in
   the tap also lets iPads play the later letters.
+
+### Quran words in the journey (2026-10-19)
+
+- Two units after Short vowels, both on Al-Fatihah, An-Nas, Al-Falaq and Al-Ikhlas (the usual
+  first surahs): **Words from the Quran** (meet a word and hear its recorded clip, pick the word you
+  hear, tap an ayah's words in order) and **My first surahs** (hear each ayah from Al-Husary's teaching
+  recitation and say it after him, then "which ayah comes next?").
+- The curriculum only names the surah; words, text and clips load from Quran Foundation when the
+  lesson opens (`/api/quran/[surah]/words`), so these lessons need the internet and say so if offline.
+- No ayah numbers are shown in these lessons, and the "what comes next" choices are built from the
+  ayah's words only, so the IndoPak end-of-ayah marker (whose numbering differs in Al-Fatihah) never
+  appears there and can't give the answer away.
+- Not graded on pronunciation: saying the ayah is the child's own step ("I said it"); the teacher
+  hears them in live sessions. Word meanings and finding letters inside words are left for later,
+  after teacher review.
