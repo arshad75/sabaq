@@ -1,6 +1,7 @@
 // Letter names for tappable boxes on the Qaida's letter pages, each played from a recording in
 // public/audio/letters/<id>.mp3. Only letter names, never Quran text.
 import type { QaidaCell } from "./layout";
+import { FADE_IN_S, FADE_OUT_S, joinPlan } from "./join";
 
 export type LetterName = { id: string; en: string; ar: string; glyph: string };
 
@@ -149,11 +150,6 @@ export function pagesWithLetterSounds(): number[] {
 
 const clipUrl = (id: string) => `/audio/letters/${id}.mp3`;
 
-// Joined words are spelled in one flow, as a teacher does: each name is trimmed to its voiced
-// part and the next starts straight after, with only a breath between.
-const JOIN_GAP_S = 0.05;
-const FADE_S = 0.008;
-
 let current: { cancelled: boolean; stop: () => void } | null = null;
 let ctx: AudioContext | null = null;
 const buffers = new Map<string, Promise<AudioBuffer>>();
@@ -178,16 +174,6 @@ function loadBuffer(ac: AudioContext, id: string): Promise<AudioBuffer> {
   return p;
 }
 
-/** Start and end (seconds) of the voiced part of a clip, ignoring near-silence at either edge. */
-export function voicedRange(samples: Float32Array, sampleRate: number, threshold = 0.02): [number, number] {
-  let a = 0;
-  let b = samples.length - 1;
-  while (a < b && Math.abs(samples[a]) < threshold) a++;
-  while (b > a && Math.abs(samples[b]) < threshold) b--;
-  if (a >= b) return [0, samples.length / sampleRate];
-  return [a / sampleRate, (b + 1) / sampleRate];
-}
-
 function stopCurrent() {
   if (current) {
     current.cancelled = true;
@@ -202,23 +188,23 @@ function playJoined(ac: AudioContext, ids: string[], onFail?: () => void) {
   Promise.all(ids.map((id) => loadBuffer(ac, id))).then(
     (bufs) => {
       if (run.cancelled) return;
-      let t = ac.currentTime + 0.03;
-      for (const buf of bufs) {
-        const [from, to] = voicedRange(buf.getChannelData(0), buf.sampleRate);
-        const len = to - from;
+      const t0 = ac.currentTime + 0.03;
+      const plan = joinPlan(bufs.map((b) => ({ samples: b.getChannelData(0), sampleRate: b.sampleRate })));
+      plan.forEach(({ at, from, len }, i) => {
+        const t = t0 + at;
+        const out = i === plan.length - 1 ? FADE_IN_S : FADE_OUT_S;
         const gain = ac.createGain();
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(1, t + FADE_S);
-        gain.gain.setValueAtTime(1, t + len - FADE_S);
+        gain.gain.linearRampToValueAtTime(1, t + FADE_IN_S);
+        gain.gain.setValueAtTime(1, t + len - out);
         gain.gain.linearRampToValueAtTime(0, t + len);
         gain.connect(ac.destination);
         const src = ac.createBufferSource();
-        src.buffer = buf;
+        src.buffer = bufs[i];
         src.connect(gain);
         src.start(t, from, len);
         sources.push(src);
-        t += len + JOIN_GAP_S;
-      }
+      });
     },
     () => {
       if (!run.cancelled) onFail?.();

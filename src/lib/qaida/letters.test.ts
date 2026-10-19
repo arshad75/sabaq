@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ALPHABET, letterFor, readingFor, speakLetter, voicedRange } from "./letters";
+import { ALPHABET, letterFor, readingFor, speakLetter } from "./letters";
 import { qaidaCells } from "./layout";
 
 describe("Qaida letter names", () => {
@@ -43,20 +43,16 @@ describe("Qaida letter names", () => {
     expect(() => speakLetter({ id: "alif" })).not.toThrow();
   });
 
-  it("finds the voiced part of a clip", () => {
-    const s = new Float32Array([0, 0.001, 0.5, -0.4, 0.3, 0.01, 0]);
-    expect(voicedRange(s, 10)).toEqual([0.2, 0.5]);
-    expect(voicedRange(new Float32Array(4), 10)).toEqual([0, 0.4]);
-  });
-
-  it("spells a joined word as one phrase: trimmed names scheduled back to back", async () => {
+  it("spells a joined word as one phrase: each name starts as the last one fades", async () => {
     vi.stubEnv("NEXT_PUBLIC_RECORDED_LETTERS", "ya,ta");
     vi.resetModules();
     const fresh = await import("./letters");
     const starts: [number, number, number][] = [];
     const fetched: string[] = [];
-    // 1 s clips at 10 Hz, voiced from 0.2 s to 0.8 s.
-    const samples = new Float32Array([0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0]);
+    // 1 s clips: quiet lead-in, the name, then a fading tail.
+    const samples = new Float32Array(1000);
+    samples.fill(0.5, 200, 600);
+    samples.fill(0.1, 600, 800);
     const param = { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() };
     vi.stubGlobal("window", globalThis);
     vi.stubGlobal("Audio", class {});
@@ -70,7 +66,7 @@ describe("Qaida letter names", () => {
         state = "running";
         currentTime = 0;
         destination = {};
-        decodeAudioData = async () => ({ sampleRate: 10, getChannelData: () => samples });
+        decodeAudioData = async () => ({ sampleRate: 1000, getChannelData: () => samples });
         createGain = () => ({ gain: param, connect: () => {} });
         createBufferSource = () => ({
           connect: () => {},
@@ -83,10 +79,12 @@ describe("Qaida letter names", () => {
     expect(fresh.speakLetters([{ id: "ya" }, { id: "ta" }])).toBe(true);
     await vi.waitFor(() => expect(starts).toHaveLength(2));
     expect(fetched).toEqual(["/audio/letters/ya.mp3", "/audio/letters/ta.mp3"]);
-    const [[t1, from, len], [t2]] = starts;
-    expect(from).toBeCloseTo(0.2);
-    expect(len).toBeCloseTo(0.6);
-    expect(t2 - t1).toBeCloseTo(0.65);
+    const [[t1, from, len], [t2, , lastLen]] = starts;
+    expect(from).toBeCloseTo(0.18);
+    expect(len).toBeCloseTo(0.47);
+    // The second name begins inside the first one's fade, and keeps its own natural ending.
+    expect(t2 - t1).toBeCloseTo(0.4);
+    expect(lastLen).toBeCloseTo(0.635);
   });
 
   it("plays only the recordings, one letter after another, never the device's voice", async () => {

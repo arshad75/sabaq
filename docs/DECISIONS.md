@@ -239,5 +239,8 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
   words and pages 7+ need vowel sounds (ba/bi/bu) we have no recordings for, so they stay silent.
 - **Spelled in one flow, not as a word.** Murakkabat are read by naming each letter in one breath
   ("Ta Ya Noon" for تين); the word itself isn't pronounced until the harakat lessons. Joined words
-  play through Web Audio: clips are decoded up front, trimmed to their voiced part and scheduled
-  back to back (50 ms apart), which also lets iPads play the later letters after one tap.
+  play through Web Audio (`src/lib/qaida/join.ts`): each recorded name is cut where its voice drops to
+  a quarter of its peak (the stand-alone recordings fade for ~0.4 s, which made words sound like three
+  separate letters), and the next name starts 70 ms before that cut with a crossfade. بخت now takes
+  1.2 s instead of 2.7 s with no audible gap; the last name keeps its natural ending. Starting audio in
+  the tap also lets iPads play the later letters.
