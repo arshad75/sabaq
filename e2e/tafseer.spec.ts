@@ -55,14 +55,16 @@ test("the tafseer route only serves listed tafsirs and real ayahs", async ({ req
   }
 });
 
-// Needs the internet and the Quran Foundation credentials (so: the live site). Every word the source
-// sends must reach the page, for a fixed sample across all offered tafsirs.
-test("tafsir text matches the Quran Foundation source", async ({ request }, info) => {
+// Needs the internet and the Quran Foundation credentials (so: the live site). Our route uses the
+// Quran Foundation API; this cross-checks it against Quran.com's public API, a separate copy of the
+// same data. The copies may differ only by tatweel (ـ); every other character must match.
+test("tafsir text matches the Quran.com copy", async ({ request }, info) => {
   test.skip(info.project.name !== "tablet-portrait", "one run is enough");
   test.setTimeout(120_000);
   const probe = await request.get("/api/tafseer/168/1/1");
   test.skip(probe.status() === 502, "Quran Foundation credentials not configured here");
-  const words = (s: string) => s.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, "").replace(/\s+/g, "");
+  const words = (s: string) =>
+    s.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, "").replace(/\s+/g, "").replace(/\u0640/g, "");
   for (const [id, key] of [["168", "2:2"], ["169", "73:2"], ["160", "2:2"], ["16", "2:2"], ["91", "2:2"], ["14", "1:1"], ["15", "114:6"], ["90", "2:255"], ["94", "1:1"]]) {
     const [surah, ayah] = key.split(":");
     const ours = await request.get(`/api/tafseer/${id}/${surah}/${ayah}`);

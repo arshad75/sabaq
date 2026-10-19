@@ -30,4 +30,10 @@ describe("tafsir HTML to plain blocks", () => {
   it("decodes numeric entities and leaves unknown ones as written", () => {
     expect(blocksText(tafsirBlocks("<p>&#65;&#x42; &unknown;</p>"))).toBe("AB &unknown;");
   });
+
+  it("never drops or changes a character, including tatweel and combining marks", () => {
+    // Code points only (tatweel, fatha, shadda, superscript alif); no words.
+    const marks = "\u0640\u064e\u0651\u0670";
+    expect(blocksText(tafsirBlocks(`<p><span class="arabic">[[${marks}]]</span></p>`))).toBe(`[[${marks}]]`);
+  });
 });
