@@ -73,7 +73,7 @@ export function StatsBar({ learner, data, onLearners }: { learner: Learner; data
 
 export function Tabs({ at, go }: { at: "path" | "review" | "me"; go: (path: string) => void }) {
   const tabs = [
-    { id: "path", path: "", label: "Learn", icon: "home" },
+    { id: "path", path: "", label: "Learn", icon: "zap" },
     { id: "review", path: "review", label: "Practise", icon: "dots" },
     { id: "me", path: "me", label: "Me", icon: "user" },
   ] as const;

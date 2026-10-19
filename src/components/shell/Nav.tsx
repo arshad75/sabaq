@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { cn } from "@/lib/cn";
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon } from "@/components/ui/Icon";
 
-export type NavItem = { href: string; label: string; icon: IconName; exact?: boolean };
+import type { NavItem } from "./nav-items";
+
+export type { NavItem };
 type Variant = "top" | "bottom";
 
 const isActive = (item: NavItem, pathname: string | null) =>
@@ -78,7 +80,7 @@ function ResponsiveNavList(props: { items: NavItem[]; variant: Variant }) {
 
 export function TopNav({ items }: { items: NavItem[] }) {
   return (
-    <nav aria-label="Main" className="hidden md:block">
+    <nav aria-label="Main" className="hidden lg:block">
       <ResponsiveNavList items={items} variant="top" />
     </nav>
   );
@@ -88,7 +90,8 @@ export function BottomNav({ items }: { items: NavItem[] }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      data-bottom-nav
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
       <ResponsiveNavList items={items} variant="bottom" />
     </nav>

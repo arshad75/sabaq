@@ -48,6 +48,14 @@ test("a family's journey is saved to their account and follows them to another d
   await expect(home).toBeVisible();
   await expect(tablet).toHaveURL(/\/welcome$/);
 
+  // One menu everywhere once signed in.
+  const menu = ["Home", "Learn", "Qaida", "Listen", "Join", "Account"];
+  const links = () => tablet.getByRole("navigation", { name: "Main" }).getByRole("link");
+  await expect(links()).toHaveText(menu);
+  await tablet.goto("/learn");
+  await expect(links()).toHaveText(menu);
+  await expect(links().filter({ hasText: "Home" })).toHaveCount(1);
+
   // A second device: nothing stored locally, the account brings the journey back.
   const phone = await (await browser.newContext()).newPage();
   await phone.goto("/login?email=1");

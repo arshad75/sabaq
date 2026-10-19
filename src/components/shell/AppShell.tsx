@@ -4,8 +4,9 @@ import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
 import { QAIDA } from "@/lib/books";
 import { Icon } from "@/components/ui/Icon";
-import { AuthNavLink, HomeLink } from "@/components/auth/AuthNavLink";
+import { HomeLink } from "@/components/auth/AuthNavLink";
 import { BottomNav, TopNav, type NavItem } from "./Nav";
+import { SiteNav } from "./SiteNav";
 
 const BRAND_CLASS = "inline-flex min-h-11 items-center gap-2 font-semibold tracking-tight";
 
@@ -67,7 +68,7 @@ export function AppShell({
       <main
         id="main"
         className={cn(
-          "mx-auto w-full flex-1 px-4 pt-6 pb-24 md:pb-10",
+          "mx-auto w-full flex-1 px-4 pt-6 pb-10",
           width === "narrow" ? "max-w-3xl" : "max-w-6xl",
         )}
       >
@@ -106,21 +107,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <HomeLink className={BRAND_CLASS}>
             <BrandMark />
           </HomeLink>
-          <nav aria-label="Main" className="flex items-center gap-1 text-sm font-medium">
-            <Link href="/learn" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-primary hover:bg-surface-2">
-              <Icon name="zap" size={16} /> Learn
-            </Link>
-            <Link href="/practice" className="hidden min-h-11 items-center rounded-xl px-3 hover:bg-surface-2 sm:inline-flex">
-              Practise
-            </Link>
-            <Link href="/listen" className="hidden min-h-11 items-center rounded-xl px-3 hover:bg-surface-2 md:inline-flex">
-              Listen
-            </Link>
-            <Link href="/join" className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2">
-              Join<span className="hidden sm:inline">&nbsp;a session</span>
-            </Link>
-            <AuthNavLink className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-surface-2" />
-          </nav>
+          <SiteNav />
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">

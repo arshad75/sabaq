@@ -115,6 +115,13 @@ body {
   font-family: var(--font-sans);
 }
 
+/* The tab bar on phones and tablets covers the bottom of the page; keep content clear of it. */
+@media (width < 64rem) {
+  body:has([data-bottom-nav]) {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
