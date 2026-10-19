@@ -21,8 +21,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/api/tafseer/[id
     if (!tafsir) return Response.json({ error: "No tafsir for this ayah" }, { status: 404 });
     const reply: TafsirReply = { verses: tafsir.verses, blocks: tafsirBlocks(tafsir.html) };
     return Response.json(reply, { headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400" } });
-  } catch (e) {
-    console.error("tafsir:", e instanceof Error ? e.message : "unknown error");
+  } catch {
     return Response.json({ error: "Tafsir source unavailable" }, { status: 502 });
   }
 }
