@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseTafseerRef, TAFSEERS } from "./tafseer";
-import { fetchTafsir } from "./qf-content.server";
+import { fetchSurah, fetchTafsir } from "./qf-content.server";
 
 describe("tafsir from the Quran Foundation API", () => {
   afterEach(() => {
@@ -56,5 +56,25 @@ describe("tafsir from the Quran Foundation API", () => {
     expect(await fetchTafsir(168, 1, 1)).toBeNull();
     status = 503;
     await expect(fetchTafsir(168, 1, 1)).rejects.toThrow();
+  });
+
+  it("reads a whole surah page by page, with the text and translation exactly as sent", async () => {
+    vi.stubEnv("QF_CLIENT_ID", "client-id");
+    vi.stubEnv("QF_CLIENT_SECRET", "client-secret");
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      if (url.endsWith("/oauth2/token")) return Response.json({ access_token: "t", expires_in: 3600 });
+      urls.push(url);
+      const page = Number(new URL(url).searchParams.get("page"));
+      const verse = (n: number) => ({ verse_key: `2:${n}`, verse_number: n, text_indopak_nastaleeq: `[[text ${n}]]`, translations: [{ text: `[[tr ${n}]]` }] });
+      return Response.json({ verses: page === 1 ? [verse(1), verse(2)] : [verse(3)], pagination: { next_page: page === 1 ? 2 : null } });
+    });
+    const verses = await fetchSurah(2, 84);
+    expect(verses.map((v) => v.key)).toEqual(["2:1", "2:2", "2:3"]);
+    expect(verses[2]).toEqual({ key: "2:3", number: 3, indopak: "[[text 3]]", translation: "[[tr 3]]" });
+    expect(urls[0]).toBe(
+      "https://apis.quran.foundation/content/api/v4/verses/by_chapter/2?fields=text_indopak_nastaleeq&translations=84&per_page=50&page=1",
+    );
+    expect(urls).toHaveLength(2);
   });
 });

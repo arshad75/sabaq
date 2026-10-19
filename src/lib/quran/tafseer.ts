@@ -28,6 +28,23 @@ export function tafseerById(id: number): Tafseer | undefined {
 /** What the tafsir route returns: the ayahs one explanation covers, and its text as plain blocks. */
 export type TafsirReply = { verses: string[]; blocks: Block[] };
 
+// Ids and names from the API's /resources/translations list.
+export const TRANSLATIONS = [
+  { id: 84, name: "Mufti Taqi Usmani", lang: "en" },
+  { id: 20, name: "Saheeh International", lang: "en" },
+  { id: 151, name: "Shaykh al-Hind Mahmud al-Hasan (with Tafsir-e-Usmani)", lang: "ur" },
+] as const;
+export type TranslationId = (typeof TRANSLATIONS)[number]["id"];
+export const DEFAULT_TRANSLATION: TranslationId = 84;
+
+export function translationById(id: number) {
+  return TRANSLATIONS.find((t) => t.id === id);
+}
+
+/** One ayah as the surah route returns it: IndoPak Nastaleeq text and the translation as plain text. */
+export type SurahVerse = { key: string; number: number; text: string; translation: string };
+export type SurahReply = { verses: SurahVerse[] };
+
 /** A tafsir, surah and ayah we serve, or null for anything else. */
 export function parseTafseerRef(id: unknown, surah: unknown, ayah: unknown): { id: number; surah: number; ayah: number } | null {
   const n = (v: unknown) => (typeof v === "string" && /^\d{1,3}$/.test(v) ? Number(v) : NaN);

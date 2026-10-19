@@ -27,19 +27,46 @@ async function accessToken(force = false): Promise<string> {
   return token.value;
 }
 
-/** One ayah's tafsir exactly as the API sends it, or null if it has none. Throws if the API is down. */
-export async function fetchTafsir(id: number, surah: number, ayah: number): Promise<{ verses: string[]; html: string } | null> {
+/** GET from the Content API with the auth headers, renewing the token once if it has expired. */
+async function apiGet(path: string): Promise<Response> {
   const get = async (force: boolean) =>
-    fetch(`${env().api}/tafsirs/${id}/by_ayah/${surah}:${ayah}`, {
+    fetch(`${env().api}${path}`, {
       headers: { "x-auth-token": await accessToken(force), "x-client-id": process.env.QF_CLIENT_ID! },
       signal: AbortSignal.timeout(10000),
       cache: "no-store",
     });
-  let res = await get(false);
-  if (res.status === 401) res = await get(true);
+  const res = await get(false);
+  return res.status === 401 ? get(true) : res;
+}
+
+/** One ayah's tafsir exactly as the API sends it, or null if it has none. Throws if the API is down. */
+export async function fetchTafsir(id: number, surah: number, ayah: number): Promise<{ verses: string[]; html: string } | null> {
+  const res = await apiGet(`/tafsirs/${id}/by_ayah/${surah}:${ayah}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Quran Foundation returned ${res.status}`);
   const t = ((await res.json()) as { tafsir?: { verses?: Record<string, unknown>; text?: unknown } }).tafsir;
   if (!t || typeof t.text !== "string" || !t.text) return null;
   return { verses: Object.keys(t.verses ?? {}), html: t.text };
+}
+
+export type SourceVerse = { key: string; number: number; indopak: string; translation: string };
+
+/** Every ayah of a surah: IndoPak Nastaleeq text and one translation (HTML), exactly as sent. */
+export async function fetchSurah(surah: number, translation: number): Promise<SourceVerse[]> {
+  const verses: SourceVerse[] = [];
+  for (let page = 1; page <= 10; page++) {
+    const res = await apiGet(
+      `/verses/by_chapter/${surah}?fields=text_indopak_nastaleeq&translations=${translation}&per_page=50&page=${page}`,
+    );
+    if (!res.ok) throw new Error(`Quran Foundation returned ${res.status}`);
+    const body = (await res.json()) as {
+      verses: { verse_key: string; verse_number: number; text_indopak_nastaleeq: string; translations?: { text: string }[] }[];
+      pagination: { next_page: number | null };
+    };
+    for (const v of body.verses) {
+      verses.push({ key: v.verse_key, number: v.verse_number, indopak: v.text_indopak_nastaleeq, translation: v.translations?.[0]?.text ?? "" });
+    }
+    if (!body.pagination.next_page) break;
+  }
+  return verses;
 }

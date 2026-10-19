@@ -69,3 +69,8 @@ export function tafsirBlocks(html: string): Block[] {
 export function blocksText(blocks: Block[]): string {
   return blocks.map((b) => b.runs.map((r) => r.text).join("")).join("");
 }
+
+/** A translation's text without markup. Footnote markers (`<sup foot_note>`) are left out until footnotes are shown. */
+export function translationText(html: string): string {
+  return decode(html.replace(/<sup\b[^>]*>[\s\S]*?<\/sup>/gi, "").replace(/<[^>]+>/g, ""));
+}

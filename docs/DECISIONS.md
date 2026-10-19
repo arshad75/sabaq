@@ -235,6 +235,13 @@ Non-obvious choices, newest first. Change the stack only with an entry here.
   note often covers several ayahs; the panel says "Explains ayahs 1–9 together" and keeps it while the
   recitation moves through them.
 - Which tafsirs to offer is the teacher's call; the list in `src/lib/quran/tafseer.ts` is easy to trim.
+- **Read along instead of one panel** (owner's request: "not ayah by ayah"): the whole surah is on the
+  page (IndoPak Nastaleeq text + a translation), the ayah being recited is lit up and kept in view, tapping
+  an ayah plays from it, and the tafsir note sits under the ayahs it explains (once, after the last of a
+  group). Each ayah's number comes from the source's own verse key, so the text, audio and tafsir can't
+  drift apart. Commentaries count verses their own way (Ma'arif al-Qur'an doesn't count the Bismillah of
+  Al-Fatihah, so its "second verse" is ayah 3 here); seeing the ayah next to the note makes that clear.
+- Default translation is Mufti Taqi Usmani's, which pairs with the default Ma'arif al-Qur'an (his father's).
 - **Own visual identity for the journey** (not a Duolingo copy): eight-point star (khatam) lessons on a
   gold thread, arched "stations" with a girih lattice, Noor instead of XP, a crescent for days in a row,
   lamps instead of stars, rising lights instead of confetti, calm rounded buttons.

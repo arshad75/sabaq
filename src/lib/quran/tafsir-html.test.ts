@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blocksText, tafsirBlocks } from "./tafsir-html";
+import { blocksText, tafsirBlocks, translationText } from "./tafsir-html";
 
 // Shapes seen in real Quran Foundation responses; the words are placeholders, never religious text.
 describe("tafsir HTML to plain blocks", () => {
@@ -29,6 +29,10 @@ describe("tafsir HTML to plain blocks", () => {
 
   it("decodes numeric entities and leaves unknown ones as written", () => {
     expect(blocksText(tafsirBlocks("<p>&#65;&#x42; &unknown;</p>"))).toBe("AB &unknown;");
+  });
+
+  it("keeps a translation's words and drops only footnote markers", () => {
+    expect(translationText('[[one]]<sup foot_note="195935">1</sup> [[two]] &amp; [[three]]')).toBe("[[one]] [[two]] & [[three]]");
   });
 
   it("never drops or changes a character, including tatweel and combining marks", () => {

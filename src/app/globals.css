@@ -115,6 +115,15 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Quran Foundation's font for their IndoPak Nastaleeq text; with any other font its marks render wrongly. */
+@font-face {
+  font-family: "IndoPakNastaleeq";
+  src:
+    url("https://verses.quran.foundation/fonts/quran/hafs/nastaleeq/indopak/indopak-nastaleeq-waqf-lazim-v4.2.1.woff2") format("woff2"),
+    url("https://verses.quran.foundation/fonts/quran/hafs/nastaleeq/indopak/indopak-nastaleeq-waqf-lazim-v4.2.1.woff") format("woff");
+  font-display: block;
+}
+
 /* The tab bar on phones and tablets covers the bottom of the page; keep content clear of it. */
 @media (width < 64rem) {
   body:has([data-bottom-nav]) {
