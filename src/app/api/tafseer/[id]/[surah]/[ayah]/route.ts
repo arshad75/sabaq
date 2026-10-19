@@ -1,27 +1,27 @@
 import { cacheLife } from "next/cache";
 import type { NextRequest } from "next/server";
-import { fetchTafsir } from "@/lib/quran/qf-content.server";
-import { tafsirBlocks } from "@/lib/quran/tafsir-html";
-import { parseTafseerRef, type TafsirReply } from "@/lib/quran/tafseer";
+import { fetchTafseer, parseTafseerRef } from "@/lib/quran/tafseer";
 
-async function cachedTafsir(id: number, surah: number, ayah: number) {
+async function cachedTafseer(id: number, surah: number, ayah: number) {
   "use cache";
-  // Quran Foundation's terms allow keeping content for at most a week.
-  cacheLife("days");
-  return fetchTafsir(id, surah, ayah);
+  // Classical tafseer doesn't change.
+  cacheLife("max");
+  return fetchTafseer(id, surah, ayah);
 }
 
-/** One ayah's tafsir as plain blocks; the API credentials stay on the server. */
+/** One ayah's tafseer, proxied because the source is HTTP-only. */
 export async function GET(_req: NextRequest, ctx: RouteContext<"/api/tafseer/[id]/[surah]/[ayah]">) {
   const { id, surah, ayah } = await ctx.params;
   const ref = parseTafseerRef(id, surah, ayah);
-  if (!ref) return Response.json({ error: "Unknown tafsir or ayah" }, { status: 404 });
+  if (!ref) return Response.json({ error: "Unknown tafseer or ayah" }, { status: 404 });
   try {
-    const tafsir = await cachedTafsir(ref.id, ref.surah, ref.ayah);
-    if (!tafsir) return Response.json({ error: "No tafsir for this ayah" }, { status: 404 });
-    const reply: TafsirReply = { verses: tafsir.verses, blocks: tafsirBlocks(tafsir.html) };
-    return Response.json(reply, { headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400" } });
+    const text = await cachedTafseer(ref.id, ref.surah, ref.ayah);
+    if (text === null) return Response.json({ error: "No tafseer for this ayah" }, { status: 404 });
+    return Response.json(
+      { text },
+      { headers: { "Cache-Control": "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400" } },
+    );
   } catch {
-    return Response.json({ error: "Tafsir source unavailable" }, { status: 502 });
+    return Response.json({ error: "Tafseer source unavailable" }, { status: 502 });
   }
 }

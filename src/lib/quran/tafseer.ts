@@ -1,34 +1,26 @@
-// Ayah-by-ayah tafsir from the Quran Foundation (Quran.com) Content API, shown verbatim.
-// Names and authors are copied from the API's /resources/tafsirs list; see docs/DATA_LICENSES.md.
+// Ayah-by-ayah tafseer from the Quran Tafseer API (api.quran-tafseer.com). Fetched through our own
+// route (the API is HTTP-only) and shown verbatim, never stored or edited: tafseer quotes Quran words.
+// Only public-domain works are offered; see docs/DATA_LICENSES.md before adding one.
 import { AYAH_COUNTS } from "@/lib/audio/recitation";
-import type { Block } from "./tafsir-html";
 
-export type { Block, Run } from "./tafsir-html";
-export type Tafseer = { id: number; name: string; author: string; lang: "en" | "ur" | "ar" };
+export type Tafseer = { id: number; name: string; author: string; lang: "ar" | "en" };
 
 export const TAFSEERS: readonly Tafseer[] = [
-  { id: 168, name: "Ma'arif al-Qur'an", author: "Mufti Muhammad Shafi", lang: "en" },
-  { id: 169, name: "Ibn Kathir (Abridged)", author: "Hafiz Ibn Kathir", lang: "en" },
-  { id: 160, name: "Tafsir Ibn Kathir", author: "Hafiz Ibn Kathir", lang: "ur" },
-  { id: 16, name: "Tafsir Muyassar", author: "المیسر", lang: "ar" },
-  { id: 91, name: "السعدي Al-Sa'di", author: "Saddi", lang: "ar" },
-  { id: 14, name: "Tafsir Ibn Kathir", author: "Hafiz Ibn Kathir", lang: "ar" },
-  { id: 15, name: "Tafsir al-Tabari", author: "Tabari", lang: "ar" },
-  { id: 90, name: "Al-Qurtubi", author: "Qurtubi", lang: "ar" },
-  { id: 94, name: "Tafseer Al-Baghawi", author: "Baghawy", lang: "ar" },
+  { id: 10, name: "English meaning (Yusuf Ali)", author: "Abdullah Yusuf Ali", lang: "en" },
+  { id: 2, name: "Tafsir al-Jalalayn, short (Arabic)", author: "al-Mahalli and al-Suyuti", lang: "ar" },
+  { id: 4, name: "Tafsir Ibn Kathir (Arabic)", author: "Ibn Kathir", lang: "ar" },
+  { id: 6, name: "Tafsir al-Baghawi (Arabic)", author: "al-Baghawi", lang: "ar" },
+  { id: 7, name: "Tafsir al-Qurtubi (Arabic)", author: "al-Qurtubi", lang: "ar" },
+  { id: 8, name: "Tafsir al-Tabari (Arabic)", author: "al-Tabari", lang: "ar" },
 ];
 
 export const DEFAULT_TAFSEER = TAFSEERS[0].id;
-export const LANGUAGE: Record<Tafseer["lang"], string> = { en: "English", ur: "Urdu", ar: "Arabic" };
 
 export function tafseerById(id: number): Tafseer | undefined {
   return TAFSEERS.find((t) => t.id === id);
 }
 
-/** What the tafsir route returns: the ayahs one explanation covers, and its text as plain blocks. */
-export type TafsirReply = { verses: string[]; blocks: Block[] };
-
-/** A tafsir, surah and ayah we serve, or null for anything else. */
+/** A tafseer, surah and ayah we serve, or null for anything else. */
 export function parseTafseerRef(id: unknown, surah: unknown, ayah: unknown): { id: number; surah: number; ayah: number } | null {
   const n = (v: unknown) => (typeof v === "string" && /^\d{1,3}$/.test(v) ? Number(v) : NaN);
   const ref = { id: n(id), surah: n(surah), ayah: n(ayah) };
@@ -36,4 +28,15 @@ export function parseTafseerRef(id: unknown, surah: unknown, ayah: unknown): { i
   if (!(ref.surah >= 1 && ref.surah <= 114)) return null;
   if (!(ref.ayah >= 1 && ref.ayah <= AYAH_COUNTS[ref.surah - 1])) return null;
   return ref;
+}
+
+const UPSTREAM = "http://api.quran-tafseer.com/tafseer";
+
+/** The tafseer text for one ayah exactly as the source sends it, or null if it has none. Throws if the source is down. */
+export async function fetchTafseer(id: number, surah: number, ayah: number): Promise<string | null> {
+  const res = await fetch(`${UPSTREAM}/${id}/${surah}/${ayah}`, { signal: AbortSignal.timeout(8000) });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Tafseer source returned ${res.status}`);
+  const body = (await res.json()) as { text?: unknown };
+  return typeof body.text === "string" ? body.text : null;
 }

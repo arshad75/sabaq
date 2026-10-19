@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { DEFAULT_TAFSEER, LANGUAGE, TAFSEERS, tafseerById, type Block, type TafsirReply } from "@/lib/quran/tafseer";
+import { DEFAULT_TAFSEER, TAFSEERS, tafseerById } from "@/lib/quran/tafseer";
 import { nextAyah } from "@/lib/audio/recitation";
 import { cn } from "@/lib/cn";
 import { Field, Select, Switch } from "@/components/ui/Form";
@@ -47,74 +47,26 @@ function useChoice(): Choice {
   );
 }
 
-const replies = new Map<string, Promise<TafsirReply | null>>();
+const texts = new Map<string, Promise<string | null>>();
 
-function loadTafsir(id: number, surah: number, ayah: number): Promise<TafsirReply | null> {
+function loadTafseer(id: number, surah: number, ayah: number): Promise<string | null> {
   const key = `${id}/${surah}/${ayah}`;
-  let p = replies.get(key);
+  let p = texts.get(key);
   if (!p) {
     p = fetch(`/api/tafseer/${key}`).then(async (r) => {
       if (r.status === 404) return null;
       if (!r.ok) throw new Error(String(r.status));
-      const reply = (await r.json()) as TafsirReply;
-      // One explanation often covers several ayahs; they all share it.
-      for (const v of reply.verses) {
-        const [s, a] = v.split(":");
-        if (Number(s) === surah) replies.set(`${id}/${s}/${a}`, Promise.resolve(reply));
-      }
-      return reply;
+      return ((await r.json()) as { text: string }).text;
     });
-    p.catch(() => replies.delete(key));
-    replies.set(key, p);
+    p.catch(() => texts.delete(key));
+    texts.set(key, p);
   }
   return p;
 }
 
-function coverage(verses: string[]): string | null {
-  if (verses.length < 2) return null;
-  const ayahs = verses.map((v) => Number(v.split(":")[1]));
-  return `Explains ayahs ${Math.min(...ayahs)}–${Math.max(...ayahs)} together`;
-}
+type Loaded = { key: string; text: string | null } | { key: string; error: true };
 
-function TafsirText({ blocks, lang }: { blocks: Block[]; lang: "en" | "ur" | "ar" }) {
-  return (
-    <>
-      {blocks.map((b, i) => {
-        // English tafsirs quote Arabic in untagged paragraphs; go by the first letter.
-        const quoted = !b.lang && lang === "en" && /^[^\p{L}]*\p{Script=Arabic}/u.test(b.runs.map((r) => r.text).join(""));
-        const blockLang = b.lang ?? (quoted ? "ar" : lang);
-        const rtl = blockLang !== "en";
-        const Tag = b.kind === "h" ? "h3" : "p";
-        return (
-          <Tag
-            key={i}
-            lang={blockLang}
-            dir={rtl ? "rtl" : "ltr"}
-            className={cn(
-              "whitespace-pre-wrap",
-              b.kind === "h" ? "mt-4 mb-1 font-semibold first:mt-0" : "mb-3 last:mb-0",
-              rtl ? "font-arabic text-xl leading-loose" : "leading-relaxed",
-            )}
-          >
-            {b.runs.map((r, j) =>
-              r.arabic && !rtl ? (
-                <span key={j} lang="ar" dir="rtl" className="font-arabic text-xl">
-                  {r.text}
-                </span>
-              ) : (
-                r.text
-              ),
-            )}
-          </Tag>
-        );
-      })}
-    </>
-  );
-}
-
-type Loaded = { key: string; reply: TafsirReply | null } | { key: string; error: true };
-
-/** The tafsir of the ayah being recited; it moves on with the recitation. */
+/** The tafseer of the ayah being recited; it moves on with the recitation. */
 export function TafseerPanel({ surah, ayah }: { surah: number; ayah: number }) {
   const { id, show } = useChoice();
   const tafseer = tafseerById(id)!;
@@ -125,20 +77,19 @@ export function TafseerPanel({ surah, ayah }: { surah: number; ayah: number }) {
   useEffect(() => {
     if (!show) return;
     let live = true;
-    loadTafsir(id, surah, ayah).then(
-      (reply) => live && setLoaded({ key, reply }),
+    loadTafseer(id, surah, ayah).then(
+      (text) => live && setLoaded({ key, text }),
       () => live && setLoaded({ key, error: true }),
     );
     // Ready before the recitation moves on.
     const next = nextAyah(surah, ayah);
-    if (next) void loadTafsir(id, surah, next.ayah).catch(() => {});
+    if (next) void loadTafseer(id, surah, next.ayah).catch(() => {});
     return () => {
       live = false;
     };
   }, [id, surah, ayah, key, show, retry]);
 
   const current = loaded?.key === key ? loaded : null;
-  const group = current && "reply" in current && current.reply ? `${id}:${current.reply.verses.join(",")}` : key;
   return (
     <section aria-labelledby="tafseer-heading" className="space-y-3 border-t border-border pt-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -153,7 +104,7 @@ export function TafseerPanel({ surah, ayah }: { surah: number; ayah: number }) {
             <Select id="tafseer" value={id} onChange={(e) => saveChoice({ id: Number(e.target.value) })}>
               {TAFSEERS.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({LANGUAGE[t.lang]})
+                  {t.name}
                 </option>
               ))}
             </Select>
@@ -173,32 +124,29 @@ export function TafseerPanel({ surah, ayah }: { surah: number; ayah: number }) {
                 </button>
                 .
               </Banner>
-            ) : current.reply === null ? (
+            ) : current.text === null ? (
               <p className="text-muted">This tafseer has no note for this ayah.</p>
             ) : (
-              <div className="space-y-2">
-                {coverage(current.reply.verses) && (
-                  <p className="text-sm font-medium text-muted" data-testid="tafseer-covers">
-                    {coverage(current.reply.verses)}
-                  </p>
+              <p
+                key={key}
+                lang={tafseer.lang}
+                dir={tafseer.lang === "ar" ? "rtl" : "ltr"}
+                data-testid="tafseer-text"
+                className={cn(
+                  "max-h-[28rem] overflow-y-auto rounded-2xl bg-surface-2 p-4 whitespace-pre-wrap",
+                  tafseer.lang === "ar" ? "font-arabic text-xl leading-loose" : "leading-relaxed",
                 )}
-                <div
-                  key={group}
-                  data-testid="tafseer-text"
-                  className="max-h-[28rem] overflow-y-auto rounded-2xl bg-surface-2 p-4"
-                  translate="no"
-                >
-                  <TafsirText blocks={current.reply.blocks} lang={tafseer.lang} />
-                </div>
-              </div>
+              >
+                {current.text}
+              </p>
             )}
           </div>
           <p className="text-xs text-muted">
-            {tafseer.name} by {tafseer.author}, from{" "}
-            <a href="https://quran.com" className="underline" rel="noopener noreferrer" target="_blank">
-              Quran.com
-            </a>{" "}
-            (Quran Foundation).
+            By {tafseer.author}, via the{" "}
+            <a href="http://api.quran-tafseer.com" className="underline" rel="noopener noreferrer" target="_blank">
+              Quran Tafseer API
+            </a>
+            .
           </p>
         </>
       )}

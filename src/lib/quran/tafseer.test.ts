@@ -1,60 +1,37 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseTafseerRef, TAFSEERS } from "./tafseer";
-import { fetchTafsir } from "./qf-content.server";
+import { fetchTafseer, parseTafseerRef, TAFSEERS } from "./tafseer";
 
-describe("tafsir from the Quran Foundation API", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.unstubAllEnvs();
+describe("tafseer", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("only serves the listed tafseers and real ayahs", () => {
+    expect(parseTafseerRef("2", "2", "255")).toEqual({ id: 2, surah: 2, ayah: 255 });
+    expect(parseTafseerRef("2", "1", "7")).not.toBeNull();
+    expect(parseTafseerRef("2", "1", "8")).toBeNull();
+    expect(parseTafseerRef("2", "115", "1")).toBeNull();
+    expect(parseTafseerRef("2", "0", "1")).toBeNull();
+    // Copyrighted modern works (at-Tafsir al-Muyassar, Tantawi, Arberry) aren't offered.
+    for (const id of ["1", "3", "5", "9", "11"]) expect(parseTafseerRef(id, "1", "1")).toBeNull();
+    for (const bad of ["1.5", "-1", "1e2", "../1", "", undefined]) expect(parseTafseerRef("2", bad, "1")).toBeNull();
   });
 
-  it("only serves the listed tafsirs and real ayahs", () => {
-    expect(parseTafseerRef("168", "2", "255")).toEqual({ id: 168, surah: 2, ayah: 255 });
-    expect(parseTafseerRef("168", "1", "8")).toBeNull();
-    expect(parseTafseerRef("168", "115", "1")).toBeNull();
-    expect(parseTafseerRef("999", "1", "1")).toBeNull();
-    for (const bad of ["1.5", "-1", "1e2", "../1", "", undefined]) expect(parseTafseerRef("168", bad, "1")).toBeNull();
-    expect(new Set(TAFSEERS.map((t) => t.id)).size).toBe(TAFSEERS.length);
+  it("has English names only, so nothing Arabic is hard-coded", () => {
+    for (const t of TAFSEERS) expect(t.name + t.author).toMatch(/^[\x20-\x7E]+$/);
   });
 
-  it("gets a token once, sends both headers, and retries once on an expired token", async () => {
-    vi.stubEnv("QF_CLIENT_ID", "client-id");
-    vi.stubEnv("QF_CLIENT_SECRET", "client-secret");
-    const calls: { url: string; headers: Record<string, string> }[] = [];
-    let expireNext = false;
-    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
-      calls.push({ url, headers: (init.headers ?? {}) as Record<string, string> });
-      if (url.endsWith("/oauth2/token")) return Response.json({ access_token: `token-${calls.length}`, expires_in: 3600 });
-      if (expireNext) {
-        expireNext = false;
-        return new Response("", { status: 401 });
-      }
-      return Response.json({ tafsir: { verses: { "73:2": {}, "73:3": {} }, text: "<p>[[PLACEHOLDER]]</p>" } });
+  it("returns the source's text unchanged, null when there is none, and throws when the source is down", async () => {
+    const calls: string[] = [];
+    const placeholder = "  [[PLACEHOLDER: not real tafseer]]\n";
+    let reply: Response = Response.json({ text: placeholder });
+    vi.stubGlobal("fetch", async (url: string) => {
+      calls.push(url);
+      return reply;
     });
-
-    expect(await fetchTafsir(168, 73, 2)).toEqual({ verses: ["73:2", "73:3"], html: "<p>[[PLACEHOLDER]]</p>" });
-    expect(calls[0].url).toBe("https://oauth2.quran.foundation/oauth2/token");
-    expect(calls[0].headers.Authorization).toBe(`Basic ${Buffer.from("client-id:client-secret").toString("base64")}`);
-    expect(calls[1].url).toBe("https://apis.quran.foundation/content/api/v4/tafsirs/168/by_ayah/73:2");
-    expect(calls[1].headers).toMatchObject({ "x-auth-token": "token-1", "x-client-id": "client-id" });
-
-    await fetchTafsir(168, 73, 3);
-    expect(calls.filter((c) => c.url.endsWith("/oauth2/token"))).toHaveLength(1);
-
-    expireNext = true;
-    await fetchTafsir(168, 73, 4);
-    expect(calls.filter((c) => c.url.endsWith("/oauth2/token"))).toHaveLength(2);
-  });
-
-  it("returns null when there's no tafsir and throws when the API is down", async () => {
-    vi.stubEnv("QF_CLIENT_ID", "client-id");
-    vi.stubEnv("QF_CLIENT_SECRET", "client-secret");
-    let status = 404;
-    vi.stubGlobal("fetch", async (url: string) =>
-      url.endsWith("/oauth2/token") ? Response.json({ access_token: "t", expires_in: 3600 }) : new Response("", { status }),
-    );
-    expect(await fetchTafsir(168, 1, 1)).toBeNull();
-    status = 503;
-    await expect(fetchTafsir(168, 1, 1)).rejects.toThrow();
+    expect(await fetchTafseer(10, 2, 2)).toBe(placeholder);
+    expect(calls).toEqual(["http://api.quran-tafseer.com/tafseer/10/2/2"]);
+    reply = new Response("", { status: 404 });
+    expect(await fetchTafseer(10, 2, 2)).toBeNull();
+    reply = new Response("", { status: 500 });
+    await expect(fetchTafseer(10, 2, 2)).rejects.toThrow();
   });
 });
