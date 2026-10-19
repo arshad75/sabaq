@@ -9,16 +9,18 @@ export function Field({
   label,
   hint,
   error,
+  className,
   children,
 }: {
   id: string;
   label: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className={cn("space-y-1.5", className)}>
       <label htmlFor={id} className="block font-medium">
         {label}
       </label>

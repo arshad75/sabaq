@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 // Placeholder data shaped like the real routes; never real religious text.
@@ -60,7 +61,7 @@ test("read along: tapping an ayah lights it up and opens its tafsir underneath",
   await expect(row(page, 9).getByTestId("tafsir-note")).toBeVisible();
   await expect(page.getByTestId("tafsir-note")).toHaveCount(1);
 
-  await page.getByLabel("Translation").selectOption({ label: "Saheeh International (English)" });
+  await page.getByLabel("Translation", { exact: true }).selectOption({ label: "Saheeh International (English)" });
   await expect(row(page, 1)).toContainText("[[tr 20 73:1]]");
 
   await page.reload();
@@ -75,6 +76,32 @@ test("read along: tapping an ayah lights it up and opens its tafsir underneath",
 
   await page.getByRole("switch", { name: "Show tafsir" }).click();
   await expect(page.getByTestId("tafsir-note")).toHaveCount(0);
+});
+
+test("the translation voice is off by default and, when chosen, reads each ayah after the Arabic", async ({ page }) => {
+  await mock(page);
+  const played: string[] = [];
+  const clip = readFileSync("public/audio/letters/ba.mp3");
+  await page.route("https://everyayah.com/**", (route) => {
+    played.push(new URL(route.request().url()).pathname.replace("/data/", ""));
+    return route.fulfill({ body: clip, contentType: "audio/mpeg" });
+  });
+  await page.goto("/listen");
+  await expect(page.getByLabel("Hear the translation")).toHaveValue("off");
+
+  await page.getByLabel("Hear the translation").selectOption("ur");
+  // The text switches to the translation being read.
+  await expect(page.getByLabel("Translation", { exact: true })).toHaveValue("234");
+  await expect(row(page, 1)).toContainText("[[tr 234 1:1]]");
+
+  await page.getByRole("button", { name: "Play ayah 1" }).click();
+  await expect(row(page, 2)).toHaveAttribute("aria-current", "true", { timeout: 15_000 });
+  expect(played.slice(0, 3)).toEqual([
+    "Husary_Muallim_128kbps/001001.mp3",
+    "translations/urdu_shamshad_ali_khan_46kbps/001001.mp3",
+    "Husary_Muallim_128kbps/001002.mp3",
+  ]);
+  await expect(page.getByText("translation read by Shamshad Ali Khan")).toBeVisible();
 });
 
 test("the Quran and tafsir routes only serve real surahs, ayahs and listed sources", async ({ request }) => {
@@ -94,7 +121,7 @@ test("Quran text, translation and tafsir match the Quran.com copy", async ({ req
 
   const plain = (h: string) =>
     h.replace(/<sup\b[^>]*>[\s\S]*?<\/sup>/gi, "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-  for (const [s, t] of [["1", "84"], ["2", "20"], ["114", "151"]]) {
+  for (const [s, t] of [["1", "84"], ["2", "20"], ["114", "151"], ["112", "234"]]) {
     const res = await request.get(`/api/quran/${s}?t=${t}`, { timeout: 60_000 });
     expect(res.status(), `surah ${s}`).toBe(200);
     const ours = (await res.json()) as { verses: { key: string; text: string; translation: string }[] };
@@ -122,6 +149,21 @@ test("Quran text, translation and tafsir match the Quran.com copy", async ({ req
     expect(body.verses, `${id}@${key}`).toEqual(Object.keys(source.verses));
     const shown = body.blocks.map((b) => b.runs.map((r) => r.text).join("")).join("").replace(/&[a-z#0-9]+;/gi, "");
     expect(words(shown), `${id}@${key}`).toBe(words(source.text.replace(/&(amp|lt|gt|quot|nbsp|#\d+|#x[0-9a-f]+);/gi, "")));
+  }
+});
+
+// Needs the internet: every translation voice must have the first and last ayah of a few surahs.
+test("translation recordings exist for whole surahs", async ({ request }, info) => {
+  test.skip(info.project.name !== "tablet-portrait", "one run is enough");
+  for (const folder of ["English/Sahih_Intnl_Ibrahim_Walk_192kbps", "translations/urdu_shamshad_ali_khan_46kbps"]) {
+    for (const [s, last] of [["001", 7], ["002", 286], ["112", 4], ["114", 6]] as const) {
+      for (const a of [1, last]) {
+        const url = `https://everyayah.com/data/${folder}/${s}${String(a).padStart(3, "0")}.mp3`;
+        const res = await request.head(url);
+        expect(res.status(), url).toBe(200);
+        expect(res.headers()["content-type"], url).toContain("audio");
+      }
+    }
   }
 });
 

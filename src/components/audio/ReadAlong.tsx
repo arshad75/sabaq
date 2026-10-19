@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AYAH_COUNTS, RECITERS, SURAH_NAMES, nextAyah, recitationUrl, type ReciterId } from "@/lib/audio/recitation";
+import {
+  AYAH_COUNTS,
+  RECITERS,
+  SURAH_NAMES,
+  TRANSLATION_VOICES,
+  nextAyah,
+  recitationUrl,
+  translationVoiceUrl,
+  voiceById,
+  type ReciterId,
+  type VoiceId,
+} from "@/lib/audio/recitation";
 import { cn } from "@/lib/cn";
 import { useQuranFont } from "@/lib/quran/font";
 import { LANGUAGE, TAFSEERS, TRANSLATIONS, type SurahReply, type TranslationId } from "@/lib/quran/tafseer";
@@ -33,6 +44,8 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
   const [surah, setSurah] = useState(initialSurah);
   const [ayah, setAyah] = useState(1);
   const [repeat, setRepeat] = useState(false);
+  // After the Arabic, the chosen translation voice reads the same ayah before moving on.
+  const [phase, setPhase] = useState<"ayah" | "voice">("ayah");
   // What the person asked for; the audio element's own events only refine the label.
   const [wantPlay, setWantPlay] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
@@ -59,19 +72,25 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
   }, [surah, prefs.translation, textKey, attempt]);
 
   // Whenever the verse or reciter changes (or play is pressed), load it and play if wanted.
+  const voice = prefs.voice === "off" ? null : prefs.voice;
+  const reading = phase === "voice" && voice !== null;
   useEffect(() => {
     const el = audio.current;
     if (!el || !wantPlay) return;
-    const src = recitationUrl(reciter, surah, ayah);
+    const src = reading && voice ? translationVoiceUrl(voice, surah, ayah) : recitationUrl(reciter, surah, ayah);
     if (el.src !== src) el.src = src;
     el.play().catch(() => setStatus("error"));
-  }, [reciter, surah, ayah, wantPlay]);
+  }, [reciter, surah, ayah, wantPlay, reading, voice]);
 
   // Keep the ayah being recited in view.
   useEffect(() => {
     rows.current.get(ayah)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [ayah]);
 
+  const goTo = (n: number) => {
+    setPhase("ayah");
+    setAyah(n);
+  };
   const start = () => {
     setStatus("loading");
     setWantPlay(true);
@@ -82,17 +101,24 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
     setStatus("paused");
   };
   const onEnded = () => {
+    if (!reading && voice) {
+      setStatus("loading");
+      setPhase("voice");
+      return;
+    }
     if (repeat) {
-      void audio.current?.play();
+      if (reading) setPhase("ayah");
+      else void audio.current?.play();
       return;
     }
     const next = nextAyah(surah, ayah);
     if (next) {
       setStatus("loading");
-      setAyah(next.ayah);
+      goTo(next.ayah);
     } else {
       setWantPlay(false);
       setStatus("idle");
+      setPhase("ayah");
     }
   };
 
@@ -109,6 +135,8 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
         onWaiting={() => setStatus("loading")}
         onEnded={onEnded}
         onError={() => {
+          // A missing translation recording shouldn't stop the recitation.
+          if (reading) return onEnded();
           setWantPlay(false);
           setStatus("error");
         }}
@@ -121,7 +149,7 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
             value={surah}
             onChange={(e) => {
               setSurah(Number(e.target.value));
-              setAyah(1);
+              goTo(1);
             }}
           >
             {SURAH_NAMES.map((name, i) => (
@@ -162,25 +190,49 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
             ))}
           </Select>
         </Field>
+        <Field
+          id="voice"
+          label="Hear the translation"
+          hint={voice ? "Read after each ayah. The translation shown is the one being read." : "Optional: a recorded voice reads the meaning after each ayah."}
+          className="sm:col-span-2"
+        >
+          <Select
+            id="voice"
+            value={prefs.voice}
+            onChange={(e) => {
+              const v = voiceById(e.target.value);
+              setPhase("ayah");
+              setListenPrefs(v ? { voice: v.id as VoiceId, translation: v.translation } : { voice: "off" });
+            }}
+          >
+            <option value="off">Off</option>
+            {TRANSLATION_VOICES.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}: {v.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
 
       <div className="material edge-below sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-2 px-4 py-3 sm:-mx-5 sm:px-5">
         <Button icon={playing ? "x" : "play"} onClick={() => (playing ? pause() : start())} aria-live="polite">
           {status === "loading" && playing ? "Loading…" : playing ? "Pause" : status === "paused" ? "Resume" : "Play"}
         </Button>
-        <Button variant="secondary" icon="chevronLeft" disabled={ayah <= 1} onClick={() => setAyah((a) => Math.max(1, a - 1))}>
+        <Button variant="secondary" icon="chevronLeft" disabled={ayah <= 1} onClick={() => goTo(Math.max(1, ayah - 1))}>
           <span className="sr-only sm:not-sr-only">Previous</span>
         </Button>
         <Button
           variant="secondary"
           iconEnd="chevronRight"
           disabled={!nextAyah(surah, ayah)}
-          onClick={() => setAyah((a) => nextAyah(surah, a)?.ayah ?? a)}
+          onClick={() => goTo(nextAyah(surah, ayah)?.ayah ?? ayah)}
         >
           <span className="sr-only sm:not-sr-only">Next</span>
         </Button>
         <p className="min-w-0 flex-1 truncate text-sm text-muted" aria-live="polite">
           {SURAH_NAMES[surah - 1]}, ayah {ayah} of {count}
+          {reading && playing && ` · ${voiceById(voice!)!.label} translation`}
         </p>
         <Switch id="repeat" label="Repeat ayah" checked={repeat} onChange={setRepeat} />
         <Switch id="show-tafseer" label="Show tafsir" checked={prefs.showTafsir} onChange={(v) => setListenPrefs({ showTafsir: v })} />
@@ -229,7 +281,7 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
                 <button
                   type="button"
                   onClick={() => {
-                    setAyah(v.number);
+                    goTo(v.number);
                     start();
                   }}
                   aria-label={`Play ayah ${v.number}`}
@@ -284,6 +336,7 @@ export function ReadAlong({ initialSurah = 1 }: { initialSurah?: number }) {
         <a href="https://everyayah.com" className="underline" rel="noopener noreferrer" target="_blank">
           EveryAyah.com
         </a>
+        {voice && `, translation read by ${voiceById(voice)!.reader}`}
         .
       </p>
     </div>

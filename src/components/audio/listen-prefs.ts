@@ -1,13 +1,14 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { voiceById, type VoiceId } from "@/lib/audio/recitation";
 import { DEFAULT_TAFSEER, DEFAULT_TRANSLATION, tafseerById, translationById, type TranslationId } from "@/lib/quran/tafseer";
 
 // The Listen page's choices, remembered on this device.
-export type ListenPrefs = { tafsir: number; showTafsir: boolean; translation: TranslationId };
+export type ListenPrefs = { tafsir: number; showTafsir: boolean; translation: TranslationId; voice: VoiceId | "off" };
 
 const KEY = "sabaq:listen";
-const DEFAULTS: ListenPrefs = { tafsir: DEFAULT_TAFSEER, showTafsir: true, translation: DEFAULT_TRANSLATION };
+const DEFAULTS: ListenPrefs = { tafsir: DEFAULT_TAFSEER, showTafsir: true, translation: DEFAULT_TRANSLATION, voice: "off" };
 const listeners = new Set<() => void>();
 let cachedRaw: string | null = null;
 let cached: ListenPrefs = DEFAULTS;
@@ -22,6 +23,7 @@ function read(): ListenPrefs {
         tafsir: tafseerById(Number(p.tafsir)) ? Number(p.tafsir) : DEFAULTS.tafsir,
         showTafsir: p.showTafsir !== false,
         translation: translationById(Number(p.translation))?.id ?? DEFAULTS.translation,
+        voice: voiceById(String(p.voice))?.id ?? "off",
       };
     } catch {
       cached = DEFAULTS;

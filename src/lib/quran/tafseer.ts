@@ -33,6 +33,7 @@ export const TRANSLATIONS = [
   { id: 84, name: "Mufti Taqi Usmani", lang: "en" },
   { id: 20, name: "Saheeh International", lang: "en" },
   { id: 151, name: "Shaykh al-Hind Mahmud al-Hasan (with Tafsir-e-Usmani)", lang: "ur" },
+  { id: 234, name: "Fateh Muhammad Jalandhari", lang: "ur" },
 ] as const;
 export type TranslationId = (typeof TRANSLATIONS)[number]["id"];
 export const DEFAULT_TRANSLATION: TranslationId = 84;

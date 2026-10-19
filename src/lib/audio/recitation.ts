@@ -45,6 +45,35 @@ export function recitationUrl(reciter: ReciterId, surah: number, ayah: number): 
   return `https://everyayah.com/data/${reciter}/${pad(surah)}${pad(ayah)}.mp3`;
 }
 
+/** Human-read translations on EveryAyah; each names the Quran Foundation translation it reads. */
+export const TRANSLATION_VOICES = [
+  {
+    id: "en",
+    folder: "English/Sahih_Intnl_Ibrahim_Walk_192kbps",
+    label: "English",
+    name: "Saheeh International, read by Ibrahim Walk",
+    reader: "Ibrahim Walk",
+    translation: 20,
+  },
+  {
+    id: "ur",
+    folder: "translations/urdu_shamshad_ali_khan_46kbps",
+    label: "Urdu",
+    name: "Fateh Muhammad Jalandhari, read by Shamshad Ali Khan",
+    reader: "Shamshad Ali Khan",
+    translation: 234,
+  },
+] as const;
+
+export type VoiceId = (typeof TRANSLATION_VOICES)[number]["id"];
+
+export const voiceById = (id: string) => TRANSLATION_VOICES.find((v) => v.id === id);
+
+export function translationVoiceUrl(voice: VoiceId, surah: number, ayah: number): string {
+  const pad = (n: number) => String(n).padStart(3, "0");
+  return `https://everyayah.com/data/${voiceById(voice)!.folder}/${pad(surah)}${pad(ayah)}.mp3`;
+}
+
 /** The ayah after this one, or null at the end of the surah. */
 export function nextAyah(surah: number, ayah: number): { surah: number; ayah: number } | null {
   return ayah < ayahCount(surah) ? { surah, ayah: ayah + 1 } : null;

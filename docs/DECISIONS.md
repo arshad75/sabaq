@@ -299,3 +299,15 @@ Following `Skills/design_skills.md`, without adding a motion library:
   are text links.
 - **Preferences respected**: reduced motion turns movement into short cross-fades and drops the
   press scale; reduced transparency and increased contrast make the bars solid.
+
+### Optional voice for the translation, not for tafsir (2026-10-19)
+
+- **Hear the translation** on `/listen` is off by default. When chosen, a recorded human voice reads
+  the meaning of each ayah right after the Arabic, then the next ayah plays.
+- Voices (EveryAyah, the same source as the recitation): English, Saheeh International read by
+  Ibrahim Walk; Urdu, Fateh Muhammad Jalandhari read by Shamshad Ali Khan. Picking a voice also shows
+  that same translation's text (Quran Foundation ids 20 and 234), so what is heard matches what is read.
+- **No tafsir voice.** Quran Foundation and the Quran Tafseer API only have tafsir text, and no
+  approved source has ayah-by-ayah tafsir recordings. A synthetic voice is ruled out (families found it
+  robotic, and the project rules forbid it for religious content). Adding one needs a recorded source
+  the owner approves, ideally an ayah-by-ayah dars from a known scholar.

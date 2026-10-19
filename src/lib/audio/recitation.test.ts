@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { AYAH_COUNTS, SURAH_NAMES, ayahCount, nextAyah, recitationUrl } from "./recitation";
+import { AYAH_COUNTS, SURAH_NAMES, TRANSLATION_VOICES, ayahCount, nextAyah, recitationUrl, translationVoiceUrl } from "./recitation";
+import { translationById } from "@/lib/quran/tafseer";
 import { letterFor, pagesWithLetterSounds, readingFor } from "@/lib/qaida/letters";
 import { qaidaCells } from "@/lib/qaida/layout";
 
@@ -20,6 +21,12 @@ describe("recitation", () => {
   it("moves to the next ayah and stops at the end of a surah", () => {
     expect(nextAyah(1, 6)).toEqual({ surah: 1, ayah: 7 });
     expect(nextAyah(1, ayahCount(1))).toBeNull();
+  });
+
+  it("pairs each translation voice with the translation text it reads", () => {
+    for (const v of TRANSLATION_VOICES) expect(translationById(v.translation), v.id).toBeDefined();
+    expect(translationVoiceUrl("ur", 112, 1)).toBe("https://everyayah.com/data/translations/urdu_shamshad_ali_khan_46kbps/112001.mp3");
+    expect(translationVoiceUrl("en", 2, 255)).toBe("https://everyayah.com/data/English/Sahih_Intnl_Ibrahim_Walk_192kbps/002255.mp3");
   });
 });
 
